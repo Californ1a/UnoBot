@@ -6,7 +6,6 @@ const {
 } = require("./card");
 const send = require("./send");
 const showHand = require("./showHand");
-const doBotTurn = require("./doBotTurn");
 const delay = require("./delay");
 
 async function resetGame(bot, msg) {
@@ -17,10 +16,28 @@ async function resetGame(bot, msg) {
 	bot.webhooks = {};
 }
 
+async function nextTurn(bot, msg, players) {
+	const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
+	await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString()}`, {
+		files: [getCardImage(bot.unogame.discardedCard)],
+	});
+	if (players) {
+		players.forEach((p) => {
+			showHand(bot, msg, p);
+		});
+	} else {
+		showHand(bot, msg, bot.unogame.currentPlayer);
+	}
+	if (bot.unogame.currentPlayer.name === bot.user.id) {
+		await delay(2000);
+		return bot.user.id; // doBotTurn(bot, msg);
+	}
+	return null;
+}
+
 async function startGame(bot, msg, players) {
 	bot.unogame = new Game(players);
 	bot.unogame.newGame();
-	const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
 	bot.unogame.on("end", async (err, winner, score) => {
 		const memb = msg.guild.members.cache.get(winner.name); // winner.name === member.id
 		await send(bot.webhooks.uno, `${memb} wins! Score: ${score}`);
@@ -28,16 +45,7 @@ async function startGame(bot, msg, players) {
 	});
 	msg.channel.unoRunning = true;
 	await send(bot.webhooks.uno, `${msg.author} has started Uno!`);
-	await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString()}`, {
-		files: [getCardImage(bot.unogame.discardedCard)],
-	});
-	players.forEach((p) => {
-		showHand(bot, msg, p);
-	});
-	if (bot.unogame.currentPlayer.name === bot.user.id) {
-		await delay(2000);
-		doBotTurn(bot, msg);
-	}
+	nextTurn(bot, msg, players);
 }
 
 async function beginning(bot, hook, msg, players) {
@@ -66,4 +74,5 @@ async function beginning(bot, hook, msg, players) {
 module.exports = {
 	reset: resetGame,
 	beginning,
+	nextTurn,
 };

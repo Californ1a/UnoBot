@@ -2,9 +2,8 @@ const {
 	Colors,
 } = require("uno-engine");
 const {
-	getCardImage,
-} = require("./card");
-const showHand = require("./showHand");
+	nextTurn,
+} = require("./game");
 const countOccurrences = require("./countOccurrences");
 const send = require("./send");
 const delay = require("./delay");
@@ -41,13 +40,8 @@ async function doBotTurn(bot, msg) {
 			if (player.hand.length === 0) {
 				return;
 			}
-			const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
-			await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString()}`, {
-				files: [getCardImage(bot.unogame.discardedCard)],
-			});
-			showHand(bot, msg, bot.unogame.currentPlayer);
-			if (bot.unogame.currentPlayer.name === bot.user.id) {
-				await delay(2000);
+			const check = await nextTurn(bot, msg);
+			if (check) {
 				doBotTurn(bot, msg);
 			}
 		} else {
@@ -90,13 +84,8 @@ async function doBotTurn(bot, msg) {
 		if (player.hand.length === 0) {
 			return;
 		}
-		const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
-		await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString()}`, {
-			files: [getCardImage(bot.unogame.discardedCard)],
-		});
-		showHand(bot, msg, bot.unogame.currentPlayer);
-		if (bot.unogame.currentPlayer.name === bot.user.id) {
-			await delay(2000);
+		const check = await nextTurn(bot, msg);
+		if (check) {
 			doBotTurn(bot, msg);
 		}
 	}

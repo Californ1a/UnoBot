@@ -6,13 +6,12 @@ const showHand = require("./util/showHand");
 const {
 	resetGame,
 	beginning,
+	nextTurn,
 } = require("./util/game");
 const {
 	getCard,
-	getCardImage,
 } = require("./util/card");
-const doBotTurn = require("./util/doBotTurn");
-const delay = require("./util/delay.js");
+const doBotTurn = require("./util/doBotTurn.js");
 
 const bot = new Discord.Client();
 console.log(colors.red("Starting"));
@@ -23,7 +22,11 @@ const unoBotMad = ["ARRGH!", "This is getting annoying!", "RATS!", "*sigh*", "Yo
 bot.webhooks = {};
 
 bot.on("message", async (msg) => {
-	console.log(`${msg.author.username}: ${msg.content}`);
+	const hr = msg.createdAt.getHours();
+	const min = msg.createdAt.getMinutes();
+	const hour = (hr.length < 2) ? `0${hr}` : hr;
+	const minute = (min.length < 2) ? `0${min}` : min;
+	console.log(`[${hour}:${minute}] ${msg.author.username}: ${msg.content}`);
 	if (msg.author.bot) {
 		return;
 	}
@@ -107,13 +110,8 @@ bot.on("message", async (msg) => {
 			&& (bot.unogame.discardedCard.value.toString().includes("WILD") || bot.unogame.discardedCard.value.toString().includes("DRAW"))) {
 			await send(msg.channel, unoBotMad[Math.floor(Math.random() * unoBotMad.length)]);
 		}
-		const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
-		await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString()}`, {
-			files: [getCardImage(bot.unogame.discardedCard)],
-		});
-		showHand(bot, msg, bot.unogame.currentPlayer);
-		if (bot.unogame.currentPlayer.name === bot.user.id) {
-			await delay(2000);
+		const check = await nextTurn(bot, msg);
+		if (check) {
 			doBotTurn(bot, msg);
 		}
 	} else if (msg.content === "draw") {
@@ -143,13 +141,8 @@ bot.on("message", async (msg) => {
 					return;
 				}
 			}
-			const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
-			await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString()}`, {
-				files: [getCardImage(bot.unogame.discardedCard)],
-			});
-			showHand(bot, msg, bot.unogame.currentPlayer);
-			if (bot.unogame.currentPlayer.name === bot.user.id) {
-				await delay(2000);
+			const check = await nextTurn(bot, msg);
+			if (check) {
 				doBotTurn(bot, msg);
 			}
 		} else {
