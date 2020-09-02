@@ -16,6 +16,7 @@
 	},
 	"rules": {
 		"quotes": ["error", "double"],
+		"linebreak-style": ["error", "windows"],
 		"arrow-parens": ["error", "as-needed", {
 			"requireForBlockBody": true
 		}],
