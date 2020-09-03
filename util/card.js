@@ -31,7 +31,7 @@ function getCard(args, p, attempt) {
 		value = "reverse";
 	} else if (value.match(/^(s|skip)$/i)) {
 		value = "skip";
-	} else if (parseInt(value, 10) && parseInt(value, 10) >= 0 && parseInt(value, 10) <= 9) {
+	} else if (!Number.isNaN(value) && parseInt(value, 10) >= 0 && parseInt(value, 10) <= 9) {
 		value = nums[value];
 	} else if (value.match(/^(dt|draw|drawtwo)$/i)) {
 		value = "draw_two";
