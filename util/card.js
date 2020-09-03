@@ -54,7 +54,7 @@ function getCard(args, p, attempt) {
 	}
 
 	let card = Card(v, c);
-	if (args.includes("WILD") || args.includes("WILD_DRAW_FOUR")) {
+	if (value.includes("WILD") || value.includes("WILD_DRAW_FOUR")) {
 		card = p.getCardByValue(v);
 		card.color = Colors.get(c);
 	}

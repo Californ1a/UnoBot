@@ -107,14 +107,14 @@ bot.on("message", async (msg) => {
 		} catch (e) {
 			if (e.message.includes("does not have card")) {
 				await send(bot.webhooks.uno, "You do not have that card.");
-			} else if (e.message.includes("from discard pile, does not match")) {
-				await send(bot.webhooks.uno, "That card can't be played now.");
-			} else {
-				// else if (e.message.includes("must draw cards")) {
-				// 	game.draw();
-				// }
-				console.error(e);
+				return;
 			}
+			if (e.message.includes("from discard pile, does not match")) {
+				await send(bot.webhooks.uno, "That card can't be played now.");
+				return;
+			}
+			console.error(e);
+			return;
 		}
 		if (player.hand.length === 0) {
 			// `game.on("end")` gets triggered
@@ -139,7 +139,7 @@ bot.on("message", async (msg) => {
 			bot.unogame.draw();
 			const card = bot.unogame.currentPlayer.hand[bot.unogame.currentPlayer.hand.length - 1];
 			const name = (card.color) ? card.toString() : card.value.toString();
-			await send(bot.webhooks.uno, `${msg.author} drew a ${name.toLowerCase().replace("_", " ")}`);
+			await send(bot.webhooks.uno, `${msg.author} drew a ${name.toLowerCase().replace(/_/g, " ")}`);
 		} else {
 			await send(msg.channel, "Uno isn't running.");
 		}
