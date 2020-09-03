@@ -1,11 +1,12 @@
 const send = require("./send");
 
-async function showHand(bot, msg, player) {
+async function showHand(bot, msg, player, players) {
 	let p = player;
 	if (player.name) {
 		p = player.name;
 	}
-	if (msg.guild.members.cache.get(p).user.bot) {
+	const user = await bot.users.fetch(p);
+	if (user.bot) {
 		return;
 	}
 	const handArr = bot.unogame.getPlayer(p).hand; // .toString().toLowerCase().split(",");
@@ -21,8 +22,12 @@ async function showHand(bot, msg, player) {
 			hand.push(card.toString().toLowerCase());
 		}
 	}
-	const member = msg.guild.members.cache.get(p);
-	await send(bot.webhooks.uno, `${member} Your Uno hand: ${hand.join(", ")}`); // TODO: send privately to `member` when inline pm is available - direct msg works but is annoying
+	let sendTo = bot.webhooks.uno;
+	if (!players.includes(bot.user.id) && bot.webhooks.uno.id !== user.id) {
+		// A player did the hand command in DM during player-to-player game while not on their turn
+		sendTo = user;
+	}
+	await send(sendTo, `${user} Your Uno hand: ${hand.join(", ")}`); // If only inline DMs were a thing - direct msg works but is annoying
 }
 
 module.exports = showHand;

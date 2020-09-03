@@ -32,7 +32,7 @@ function getCard(args, p, attempt) {
 	} else if (value.match(/^(s|skip)$/i)) {
 		value = "skip";
 	} else if (!Number.isNaN(value) && parseInt(value, 10) >= 0 && parseInt(value, 10) <= 9) {
-		value = nums[value];
+		value = nums[parseInt(value, 10)];
 	} else if (value.match(/^(dt|draw|drawtwo)$/i)) {
 		value = "draw_two";
 	} else if (value.match(/^(w|wild)$/i)) {
@@ -41,10 +41,20 @@ function getCard(args, p, attempt) {
 		value = "wild_draw_four";
 	}
 
+	// console.log(args[0]);
+	// console.log(args[1]);
+	// console.log(color);
+	// console.log(value);
+
 	color = color.toUpperCase();
 	value = value.toUpperCase();
 	const c = (Colors.get(color)) ? Colors.get(color) : Colors.get(value);
 	const v = (Values.get(value)) ? Values.get(value) : Values.get(color);
+
+	// console.log(color);
+	// console.log(value);
+	// console.log(c);
+	// console.log(v);
 
 	if (!c || !v) {
 		if (attempt) {
