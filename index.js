@@ -86,10 +86,20 @@ bot.on("message", async (msg) => {
 		const player = bot.unogame.currentPlayer;
 		const args = msg.content.split(" ").slice(1);
 		if (args.length !== 2) {
+			if (args[0] && args[0].match(/^(w|wild|wd4)$/i)) {
+				await send(msg.channel, "You must provide a color to switch to.");
+				return;
+			}
+			await send(msg.channel, "You must specify both/only a card value and color");
 			return;
 		}
 		try {
-			bot.unogame.play(getCard(args, bot.unogame.currentPlayer));
+			const card = getCard(args, bot.unogame.currentPlayer);
+			if (!card) {
+				await send(msg.channel, "Incorrect syntax, couldn't find card mathing the given input.");
+				return;
+			}
+			bot.unogame.play(card);
 			if (bot.unogame && (bot.unogame.discardedCard.value.toString() === "DRAW_TWO"
 					|| bot.unogame.discardedCard.value.toString() === "WILD_DRAW_FOUR")) {
 				bot.unogame.draw();

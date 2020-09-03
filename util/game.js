@@ -18,7 +18,7 @@ async function resetGame(bot, msg) {
 
 async function nextTurn(bot, msg, players) {
 	const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
-	await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString()}`, {
+	await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString().replace("_", " ")}`, {
 		files: [getCardImage(bot.unogame.discardedCard)],
 	});
 	if (players) {

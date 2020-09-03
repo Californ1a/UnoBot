@@ -5,101 +5,54 @@ const {
 } = require("uno-engine");
 const cardImages = require("../unocardimages");
 
+const nums = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+
 function getCardImage(card) {
 	const value = card.value.toString();
 	const color = card.color.toString();
 	return cardImages[color][value];
 }
 
-function getCard(args, p) {
-	// #region Shorthand for quick testing games
-	switch (args[0]) {
-		case "r":
-			args[0] = "red";
-			break;
-		case "g":
-			args[0] = "green";
-			break;
-		case "y":
-			args[0] = "yellow";
-			break;
-		case "b":
-			args[0] = "blue";
-			break;
-		case "w":
-			args[0] = "wild";
-			break;
-		case "wd4":
-			args[0] = "wild_draw_four";
-			break;
-		default:
-			throw new Error("Woops");
+function getCard(args, p, attempt) {
+	let color = args[0];
+	let value = args[1];
+
+	if (color.match(/^(r|red)$/i)) {
+		color = "red";
+	} else if (color.match(/^(g|green)$/i)) {
+		color = "green";
+	} else if (color.match(/^(y|yellow)$/i)) {
+		color = "yellow";
+	} else if (color.match(/^(b|blue)$/i)) {
+		color = "blue";
 	}
-	switch (args[1]) {
-		case "r":
-			args[1] = (args[0].includes("wild")) ? "red" : "reverse";
-			break;
-		case "s":
-			args[1] = "skip";
-			break;
-		case "y":
-			args[1] = (args[0].includes("wild")) ? "yellow" : args[1];
-			break;
-		case "b":
-			args[1] = (args[0].includes("wild")) ? "blue" : args[1];
-			break;
-		case "g":
-			args[1] = (args[0].includes("wild")) ? "green" : args[1];
-			break;
-		case "0":
-			args[1] = "zero";
-			break;
-		case "1":
-			args[1] = "one";
-			break;
-		case "2":
-			args[1] = "two";
-			break;
-		case "3":
-			args[1] = "three";
-			break;
-		case "4":
-			args[1] = "four";
-			break;
-		case "5":
-			args[1] = "five";
-			break;
-		case "6":
-			args[1] = "six";
-			break;
-		case "7":
-			args[1] = "seven";
-			break;
-		case "8":
-			args[1] = "eight";
-			break;
-		case "9":
-			args[1] = "nine";
-			break;
-		case "dt":
-			args[1] = "draw_two";
-			break;
-		case "w":
-			args[1] = "wild";
-			break;
-		case "wd4":
-			args[1] = "wild_draw_four";
-			break;
-		default:
-			throw new Error("Woops");
+
+	if (value.match(/^(r|reverse)$/i)) {
+		value = "reverse";
+	} else if (value.match(/^(s|skip)$/i)) {
+		value = "skip";
+	} else if (parseInt(value, 10) && parseInt(value, 10) >= 0 && parseInt(value, 10) <= 9) {
+		value = nums[value];
+	} else if (value.match(/^(dt|draw|drawtwo)$/i)) {
+		value = "draw_two";
+	} else if (value.match(/^(w|wild)$/i)) {
+		value = "wild";
+	} else if (value.match(/^(wd4|wilddraw|wilddraw4|wilddrawfour)$/i)) {
+		value = "wild_draw_four";
 	}
-	// #endregion
-	args[0] = args[0].toUpperCase();
-	args[1] = args[1].toUpperCase();
-	const c = (Colors.get(args[0])) ? Colors.get(args[0]) : Colors.get(args[1]);
-	const v = (Values.get(args[1])) ? Values.get(args[1]) : Values.get(args[0]);
-	// console.log(args[0], args[1]);
-	// console.log(c, v);
+
+	color = color.toUpperCase();
+	value = value.toUpperCase();
+	const c = (Colors.get(color)) ? Colors.get(color) : Colors.get(value);
+	const v = (Values.get(value)) ? Values.get(value) : Values.get(color);
+
+	if (!c || !v) {
+		if (attempt) {
+			return null;
+		}
+		return getCard(args.reverse(), p, 1); // support backward args
+	}
+
 	let card = Card(v, c);
 	if (args.includes("WILD") || args.includes("WILD_DRAW_FOUR")) {
 		card = p.getCardByValue(v);
