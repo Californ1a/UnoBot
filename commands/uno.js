@@ -36,7 +36,9 @@ async function uno(bot, msg) {
 			bot.unogame.unoPlayers = [];
 		}
 		try {
-			await send(msg.author, "You are entered to play Uno. If more than 1 person enters, the game will be run in DMs. Disregard this message otherwise.");
+			if (!process.env.DEV) {
+				await send(msg.author, "You are entered to play Uno. If more than 1 person enters, the game will be run in DMs. Disregard this message otherwise.");
+			}
 		} catch (e) {
 			await send(msg.channel, "Couldn't send you a DM. DMs must be open to play Uno.");
 			return;

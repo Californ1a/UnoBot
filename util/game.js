@@ -87,7 +87,7 @@ async function startGame(bot, msg, players) {
 	bot.unogame.newGame();
 	// console.log(players);
 	bot.unogame.on("end", async (err, winner, score) => {
-		console.log(players);
+		// console.log(players);
 		const user = await bot.users.fetch(winner.name); // winner.name === member.id
 		await sendWinMessage(bot, user, score, players);
 		await resetGame(bot, msg);

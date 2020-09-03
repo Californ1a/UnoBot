@@ -14,8 +14,8 @@ bot.unogame = {};
 bot.on("message", async (msg) => {
 	const hr = msg.createdAt.getHours();
 	const min = msg.createdAt.getMinutes();
-	const hour = (hr.length < 2) ? `0${hr}` : hr;
-	const minute = (min.length < 2) ? `0${min}` : min;
+	const hour = (`${hr}`.length < 2) ? `0${hr}` : hr;
+	const minute = (`${min}`.length < 2) ? `0${min}` : min;
 	console.log(`[${hour}:${minute}] ${msg.author.username}: ${msg.content}`);
 	if (msg.author.bot) {
 		return;
