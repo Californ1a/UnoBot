@@ -37,8 +37,8 @@ async function doBotTurn(bot, msg) {
 			if (player.hand.length === 0) {
 				return;
 			}
-			const check = await nextTurn(bot, msg);
-			if (check) {
+			const check = await nextTurn(bot, msg, bot.unogame.unoPlayers);
+			if (!check) {
 				doBotTurn(bot, msg);
 			}
 		} else {
@@ -86,8 +86,8 @@ async function doBotTurn(bot, msg) {
 		if (player.hand.length === 0) {
 			return;
 		}
-		const check = await nextTurn(bot, msg);
-		if (check) {
+		const check = await nextTurn(bot, msg, bot.unogame.unoPlayers);
+		if (!check) {
 			doBotTurn(bot, msg);
 		}
 	}

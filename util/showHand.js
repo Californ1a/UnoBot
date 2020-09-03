@@ -23,7 +23,7 @@ async function showHand(bot, msg, player, players) {
 		}
 	}
 	let sendTo = bot.webhooks.uno;
-	if (!players.includes(bot.user.id) && bot.webhooks.uno.id !== user.id) {
+	if (players && !players.includes(bot.user.id) && bot.webhooks.uno.id !== user.id) {
 		// A player did the hand command in DM during player-to-player game while not on their turn
 		sendTo = user;
 	}

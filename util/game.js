@@ -20,17 +20,16 @@ async function resetGame(bot) {
 }
 
 async function nextTurn(bot, msg, players) {
-	console.log(players);
+	// console.log(players);
 	if (!bot.unogame) {
 		return players;
 	}
 	const user = await bot.users.fetch(bot.unogame.currentPlayer.name);
 	const name = bot.unogame.discardedCard.toString();
 	const n2 = (name.includes("WILD_DRAW")) ? `${name.split(" ")[0]} WD4` : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
-	if (!players.includes(bot.user.id)) {
+	if (players && !players.includes(bot.user.id)) {
 		bot.webhooks.uno = await bot.users.fetch(bot.unogame.currentPlayer.name);
-	}
-	if (!players.includes(bot.user.id)) {
+
 		const previousPlayer = {
 			id: null,
 		};
@@ -61,8 +60,8 @@ async function nextTurn(bot, msg, players) {
 }
 
 async function sendWinMessage(bot, winner, score, players) {
-	console.log(players);
-	if (players.length === 2 && !players.includes(bot.user.id)) {
+	// console.log(players);
+	if (players.length === 2 && players.includes(bot.user.id)) {
 		await send(bot.webhooks.uno, `${winner} wins! Score: ${score}`);
 	} else {
 		const previousPlayer = {
@@ -84,6 +83,7 @@ async function sendWinMessage(bot, winner, score, players) {
 
 async function startGame(bot, msg, players) {
 	bot.unogame = new Game(players);
+	console.log(bot.unogame);
 	bot.unogame.newGame();
 	console.log(players);
 	bot.unogame.on("end", async (err, winner, score) => {
@@ -94,8 +94,9 @@ async function startGame(bot, msg, players) {
 	});
 	bot.unogame.unoRunning = true;
 	await send(bot.webhooks.uno, `${msg.author} has started Uno!${(players.includes(bot.user.id)) ? "" : " The game will be played in your DMs to keep your hand private!"}`);
-
-	await delay(5000);
+	if (!players.includes(bot.user.id)) {
+		await delay(5000); // Allow extra time to read start msg when there's >1 real player
+	}
 	const check = await nextTurn(bot, msg, players); // Pass the bot id all the way back up the stack
 	return check;
 }

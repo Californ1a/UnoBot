@@ -82,7 +82,7 @@ bot.on("message", async (msg) => {
 				bot.unoAwaitingPlayers = false;
 				if (!check) {
 					doBotTurn(bot, msg);
-				} else {
+				} else if (check[0]) {
 					bot.unogame.unoPlayers = check;
 				}
 			} else {
@@ -91,7 +91,7 @@ bot.on("message", async (msg) => {
 				bot.unoAwaitingPlayers = false;
 				if (!check) {
 					doBotTurn(bot, msg);
-				} else {
+				} else if (check[0]) {
 					bot.unogame.unoPlayers = check;
 				}
 			}
@@ -124,11 +124,11 @@ bot.on("message", async (msg) => {
 				return;
 			}
 			let previousPlayer;
-			if (!bot.unogame.unoPlayers.includes(bot.user.id)) {
+			if (bot.unogame.unoPlayers && !bot.unogame.unoPlayers.includes(bot.user.id)) {
 				previousPlayer = await bot.users.fetch(bot.unogame.currentPlayer.name);
 			}
 			bot.unogame.play(card);
-			if (!bot.unogame.unoPlayers.includes(bot.user.id)) {
+			if (bot.unogame.unoPlayers && !bot.unogame.unoPlayers.includes(bot.user.id)) {
 				msgAllPlayers(bot, bot.unogame.unoPlayers, previousPlayer, `${previousPlayer}: play ${args.join(" ")}`);
 			}
 			if (bot.unogame && (bot.unogame.discardedCard.value.toString() === "DRAW_TWO"
@@ -160,7 +160,7 @@ bot.on("message", async (msg) => {
 		if (rand && bot.unogame.getPlayer(bot.user.id) && (value.includes("DRAW") || value.includes("SKIP") || value.includes("REVERSE"))) {
 			await send(msg.channel, unoBotMad[Math.floor(Math.random() * unoBotMad.length)]);
 		}
-		console.log("aaaa", bot.unogame.unoPlayers);
+		// console.log("aaaa", bot.unogame.unoPlayers);
 		const check = await nextTurn(bot, msg, bot.unogame.unoPlayers);
 		if (!check) {
 			doBotTurn(bot, msg);
@@ -172,11 +172,11 @@ bot.on("message", async (msg) => {
 				return;
 			}
 			let previousPlayer;
-			if (!bot.unogame.unoPlayers.includes(bot.user.id)) {
+			if (bot.unogame.unoPlayers && !bot.unogame.unoPlayers.includes(bot.user.id)) {
 				previousPlayer = await bot.users.fetch(bot.unogame.currentPlayer.name);
 			}
 			bot.unogame.draw();
-			if (!bot.unogame.unoPlayers.includes(bot.user.id)) {
+			if (bot.unogame.unoPlayers && !bot.unogame.unoPlayers.includes(bot.user.id)) {
 				msgAllPlayers(bot, bot.unogame.unoPlayers, previousPlayer, `${previousPlayer}: draw`);
 			}
 			const card = bot.unogame.currentPlayer.hand[bot.unogame.currentPlayer.hand.length - 1];
@@ -194,11 +194,11 @@ bot.on("message", async (msg) => {
 			}
 			try {
 				let previousPlayer;
-				if (!bot.unogame.unoPlayers.includes(bot.user.id)) {
+				if (bot.unogame.unoPlayers && !bot.unogame.unoPlayers.includes(bot.user.id)) {
 					previousPlayer = await bot.users.fetch(bot.unogame.currentPlayer.name);
 				}
 				bot.unogame.pass();
-				if (!bot.unogame.unoPlayers.includes(bot.user.id)) {
+				if (bot.unogame.unoPlayers && !bot.unogame.unoPlayers.includes(bot.user.id)) {
 					msgAllPlayers(bot, bot.unogame.unoPlayers, previousPlayer, `${previousPlayer}: pass`);
 				}
 			} catch (e) {
@@ -216,7 +216,7 @@ bot.on("message", async (msg) => {
 		}
 	} else if (msg.content === "hand") {
 		if (typeof bot.unogame.unoRunning === "boolean" && bot.unogame.unoRunning) {
-			if (bot.unogame.unoPlayers.includes(msg.author.id)) {
+			if (bot.unogame.unoPlayers && bot.unogame.unoPlayers.includes(msg.author.id)) {
 				showHand(bot, msg, bot.unogame.getPlayer(msg.author.id), bot.unogame.unoPlayers);
 			}
 		} else {
@@ -227,7 +227,7 @@ bot.on("message", async (msg) => {
 			await send(msg.channel, "Uno isn't running.");
 			return;
 		}
-		if (!bot.unogame.unoPlayers.includes(msg.author.id)) {
+		if (bot.unogame.unoPlayers && !bot.unogame.unoPlayers.includes(msg.author.id)) {
 			await send(msg.channel, "You are not a participant in this game.");
 			return;
 		}
