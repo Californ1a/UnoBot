@@ -62,10 +62,16 @@ bot.on("message", async (msg) => {
 				const hook = await msg.channel.createWebhook("UnoBot", {
 					avatar: "https://i.imgur.com/fLMHXKh.jpg",
 				});
-				beginning(bot, hook, msg, players);
+				const check = await beginning(bot, hook, msg, players);
+				if (check) {
+					doBotTurn(bot, msg);
+				}
 			} else {
 				const hook = unobot;
-				beginning(bot, hook, msg, players);
+				const check = await beginning(bot, hook, msg, players);
+				if (check) {
+					doBotTurn(bot, msg);
+				}
 			}
 		}
 	} else if (msg.content.startsWith("play")) {

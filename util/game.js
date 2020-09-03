@@ -30,7 +30,10 @@ async function nextTurn(bot, msg, players) {
 	}
 	if (bot.unogame.currentPlayer.name === bot.user.id) {
 		await delay(2000);
-		return bot.user.id; // doBotTurn(bot, msg);
+		return bot.user.id;
+		/* `doBotTurn(bot, msg);`
+			but then recursive requires,
+			so pass a value back up the stack instead */
 	}
 	return null;
 }
@@ -45,7 +48,8 @@ async function startGame(bot, msg, players) {
 	});
 	msg.channel.unoRunning = true;
 	await send(bot.webhooks.uno, `${msg.author} has started Uno!`);
-	nextTurn(bot, msg, players);
+	const check = await nextTurn(bot, msg, players); // Pass the bot id all the way back up the stack
+	return check;
 }
 
 async function beginning(bot, hook, msg, players) {
@@ -60,15 +64,18 @@ async function beginning(bot, hook, msg, players) {
 			players.push(m.author.id);
 		}
 	});
-	collector.on("end", async () => { // arg=collected collection
-		if (players.length < 2) {
-			await send(msg.channel, "No one joined, the bot will play!");
-			// Bot as player
-			players.push(bot.user.id);
-			await delay(7000);
-		}
-		startGame(bot, msg, players);
+	await new Promise((resolve, reject) => { // This exists
+		collector.on("end", resolve);
+		collector.on("error", reject);
 	});
+	if (players.length < 2) {
+		await send(msg.channel, "No one joined, the bot will play!");
+		// Bot as player
+		players.push(bot.user.id);
+		await delay(7000);
+	}
+	const check = await startGame(bot, msg, players); // Keep passing it up the stack
+	return check;
 }
 
 module.exports = {
