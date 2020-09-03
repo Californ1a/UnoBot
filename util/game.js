@@ -19,8 +19,8 @@ async function resetGame(bot) {
 	bot.webhooks = {};
 }
 
-async function nextTurn(bot, msg, players) {
-	// console.log(players);
+async function nextTurn(bot, msg, players = bot.unogame.unoPlayers) {
+	// console.log("players", players);
 	if (!bot.unogame) {
 		return players;
 	}
@@ -83,9 +83,9 @@ async function sendWinMessage(bot, winner, score, players) {
 
 async function startGame(bot, msg, players) {
 	bot.unogame = new Game(players);
-	console.log(bot.unogame);
+	// console.log(bot.unogame);
 	bot.unogame.newGame();
-	console.log(players);
+	// console.log(players);
 	bot.unogame.on("end", async (err, winner, score) => {
 		console.log(players);
 		const user = await bot.users.fetch(winner.name); // winner.name === member.id
@@ -98,6 +98,7 @@ async function startGame(bot, msg, players) {
 		await delay(5000); // Allow extra time to read start msg when there's >1 real player
 	}
 	const check = await nextTurn(bot, msg, players); // Pass the bot id all the way back up the stack
+	bot.unogame.unoPlayers = check;
 	return check;
 }
 

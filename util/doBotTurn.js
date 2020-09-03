@@ -11,6 +11,12 @@ const delay = require("./delay");
 const unoBotThink = ["*evil grin*..", "You'll pay for that...", "woooot..", "Dum de dum..", "hehe..", "Oh boy..", "hrm..", "Lets see here..", "uh..", "Hmm, you're good..", "Decisions decisions..", "Ahah!...", "Eeny Meeny Miney Moe..", "LOL..", "Oh dear..", "Errr..", "Ah me brain!..."];
 
 async function doBotTurn(bot, msg) {
+	if (!bot.unogame
+		|| !bot.unogame.currentPlayer
+		|| !bot.unogame.currentPlayer.hand
+		|| bot.unogame.currentPlayer.name !== bot.user.id) {
+		return;
+	}
 	const player = bot.unogame.currentPlayer;
 	let currentHand = player.hand;
 	let botMatchingHand = currentHand.filter(card => (card.color === bot.unogame.discardedCard.color
@@ -37,7 +43,8 @@ async function doBotTurn(bot, msg) {
 			if (player.hand.length === 0) {
 				return;
 			}
-			const check = await nextTurn(bot, msg, bot.unogame.unoPlayers);
+			const check = await nextTurn(bot, msg);
+			// console.log("check1", check);
 			if (!check) {
 				doBotTurn(bot, msg);
 			}
@@ -86,7 +93,8 @@ async function doBotTurn(bot, msg) {
 		if (player.hand.length === 0) {
 			return;
 		}
-		const check = await nextTurn(bot, msg, bot.unogame.unoPlayers);
+		const check = await nextTurn(bot, msg);
+		// console.log("check2", check);
 		if (!check) {
 			doBotTurn(bot, msg);
 		}
