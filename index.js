@@ -96,7 +96,7 @@ bot.on("message", async (msg) => {
 		try {
 			const card = getCard(args, bot.unogame.currentPlayer);
 			if (!card) {
-				await send(msg.channel, "Incorrect syntax, couldn't find card mathing the given input.");
+				await send(msg.channel, "Couldn't find card matching the given input.");
 				return;
 			}
 			bot.unogame.play(card);
