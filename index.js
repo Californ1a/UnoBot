@@ -20,6 +20,7 @@ const token = process.env.DISCORD_TOKEN;
 const unoBotMad = ["ARRGH!", "This is getting annoying!", "RATS!", "*sigh*", "You're getting on my nerves >:/", "dfasdfjhweuryaeuwysadjkf", "I'm steamed.", "BAH"];
 
 bot.webhooks = {};
+bot.unoAwaitingPlayers = false;
 
 bot.on("message", async (msg) => {
 	const hr = msg.createdAt.getHours();
@@ -31,9 +32,10 @@ bot.on("message", async (msg) => {
 		return;
 	}
 	if (msg.content.startsWith("!uno")) {
-		if (msg.channel.unoRunning) {
+		if (msg.channel.unoRunning && !bot.unoAwaitingPlayers) {
+			bot.unoAwaitingPlayers = true;
 			// return send(msg.channel, "Uno is already running");
-			await send(msg.channel, "Do you want to end Uno?");
+			await send(msg.channel, "Do you want to end Uno? [y/N]");
 			try {
 				const collected = await msg.channel.awaitMessages(r => (r.content === "y" || r.content === "yes" || r.content === "n" || r.content === "no") && msg.author.id === r.author.id, {
 					max: 1,
@@ -42,15 +44,20 @@ bot.on("message", async (msg) => {
 				});
 				if (collected.first().content === "n" || collected.first().content === "no") {
 					await send(msg.channel, "Uno will continue.");
+					bot.unoAwaitingPlayers = false;
 					return;
 				}
-				resetGame(bot, msg);
+				await resetGame(bot, msg);
 				await send(msg.channel, "Uno has been forced ended.");
+				bot.unoAwaitingPlayers = false;
 				return;
 			} catch (e) {
-				await send(msg.channel, "You took too long to respond. Uno will continue.");
+				await send(msg.channel, "Took too long to respond. Uno will continue.");
+				bot.unoAwaitingPlayers = false;
+				console.log(e);
 			}
-		} else {
+		} else if (!bot.unoAwaitingPlayers) {
+			bot.unoAwaitingPlayers = true;
 			if (!msg.channel.unoPlayers) {
 				msg.channel.unoPlayers = [];
 			}
@@ -63,16 +70,20 @@ bot.on("message", async (msg) => {
 					avatar: "https://i.imgur.com/fLMHXKh.jpg",
 				});
 				const check = await beginning(bot, hook, msg, players);
+				bot.unoAwaitingPlayers = false;
 				if (check) {
 					doBotTurn(bot, msg);
 				}
 			} else {
 				const hook = unobot;
 				const check = await beginning(bot, hook, msg, players);
+				bot.unoAwaitingPlayers = false;
 				if (check) {
 					doBotTurn(bot, msg);
 				}
 			}
+		} else {
+			await send(msg.channel, "Still waiting for players. You can end Uno after players have joined.");
 		}
 	} else if (msg.content.startsWith("play")) {
 		if (!(typeof msg.channel.unoRunning === "boolean" && msg.channel.unoRunning)) {
@@ -121,9 +132,12 @@ bot.on("message", async (msg) => {
 			return;
 		}
 		const betweenLength = Math.floor(Math.random() * unoBotMad.length);
-		const rand = betweenLength > Math.floor(unoBotMad.length / 3);
-		if (rand && bot.unogame.getPlayer(bot.user.id)
-			&& (bot.unogame.discardedCard.value.toString().includes("WILD") || bot.unogame.discardedCard.value.toString().includes("DRAW"))) {
+		let rand = betweenLength > Math.floor(unoBotMad.length / 2);
+		const value = bot.unogame.discardedCard.value.toString();
+		if (value.includes("DRAW")) { // Increase chance for bot to get mad for draw cards
+			rand = betweenLength > Math.floor(unoBotMad.length / 3);
+		}
+		if (rand && bot.unogame.getPlayer(bot.user.id) && (value.includes("DRAW") || value.includes("SKIP") || value.includes("REVERSE"))) {
 			await send(msg.channel, unoBotMad[Math.floor(Math.random() * unoBotMad.length)]);
 		}
 		const check = await nextTurn(bot, msg);
@@ -139,7 +153,8 @@ bot.on("message", async (msg) => {
 			bot.unogame.draw();
 			const card = bot.unogame.currentPlayer.hand[bot.unogame.currentPlayer.hand.length - 1];
 			const name = (card.color) ? card.toString() : card.value.toString();
-			await send(bot.webhooks.uno, `${msg.author} drew a ${name.toLowerCase().replace(/_/g, " ")}`);
+			const n2 = (name.includes("WILD_DRAW")) ? `${name.split(" ")[0]} WD4` : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
+			await send(bot.webhooks.uno, `${msg.author} drew a ${n2.toLowerCase()}`);
 		} else {
 			await send(msg.channel, "Uno isn't running.");
 		}

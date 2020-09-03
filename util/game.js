@@ -17,8 +17,13 @@ async function resetGame(bot, msg) {
 }
 
 async function nextTurn(bot, msg, players) {
+	if (!bot.unogame) {
+		return null;
+	}
 	const member = msg.guild.members.cache.get(bot.unogame.currentPlayer.name);
-	await send(bot.webhooks.uno, `You're up ${member} - Card: ${bot.unogame.discardedCard.toString().replace(/_/g, " ")}`, {
+	const name = bot.unogame.discardedCard.toString();
+	const n2 = (name.includes("WILD_DRAW")) ? `${name.split(" ")[0]} WD4` : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
+	await send(bot.webhooks.uno, `You're up ${member} - Card: ${n2}`, {
 		files: [getCardImage(bot.unogame.discardedCard)],
 	});
 	if (players) {
