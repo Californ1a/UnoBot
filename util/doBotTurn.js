@@ -10,7 +10,7 @@ const delay = require("./delay");
 
 const unoBotThink = ["*evil grin*..", "You'll pay for that...", "woooot..", "Dum de dum..", "hehe..", "Oh boy..", "hrm..", "Lets see here..", "uh..", "Hmm, you're good..", "Decisions decisions..", "Ahah!...", "Eeny Meeny Miney Moe..", "LOL..", "Oh dear..", "Errr..", "Ah me brain!..."];
 
-async function doBotTurn(bot, msg) {
+async function doBotTurn(bot, msg, players) {
 	if (!bot.unogame
 		|| !bot.unogame.currentPlayer
 		|| !bot.unogame.currentPlayer.hand
@@ -43,14 +43,14 @@ async function doBotTurn(bot, msg) {
 			if (player.hand.length === 0) {
 				return;
 			}
-			const check = await nextTurn(bot, msg);
+			const check = await nextTurn(bot, msg, players);
 			// console.log("check1", check);
 			if (!check) {
-				doBotTurn(bot, msg);
+				doBotTurn(bot, msg, players);
 			}
 		} else {
 			await delay(2000);
-			doBotTurn(bot, msg);
+			doBotTurn(bot, msg, players);
 		}
 	} else {
 		await delay(1000);
@@ -93,10 +93,10 @@ async function doBotTurn(bot, msg) {
 		if (player.hand.length === 0) {
 			return;
 		}
-		const check = await nextTurn(bot, msg);
+		const check = await nextTurn(bot, msg, players);
 		// console.log("check2", check);
 		if (!check) {
-			doBotTurn(bot, msg);
+			doBotTurn(bot, msg, players);
 		}
 	}
 }

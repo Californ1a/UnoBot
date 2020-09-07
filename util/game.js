@@ -20,7 +20,6 @@ async function resetGame(bot) {
 }
 
 async function nextTurn(bot, msg, players = bot.unogame.unoPlayers) {
-	// console.log("players", players);
 	if (!bot.unogame) {
 		return players;
 	}
@@ -83,6 +82,9 @@ async function sendWinMessage(bot, winner, score, players) {
 
 async function startGame(bot, msg, players) {
 	bot.unogame = new Game(players);
+	if (players && (!bot.unogame.unoPlayers || bot.unogame.unoPlayers[0] !== players[0])) {
+		bot.unogame.unoPlayers = players;
+	}
 	// console.log(bot.unogame);
 	bot.unogame.newGame();
 	// console.log(players);

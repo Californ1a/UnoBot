@@ -13,10 +13,8 @@ async function score(bot, msg) {
 	for (const p of bot.unogame.unoPlayers) {
 		players.push(bot.unogame.getPlayer(p));
 	}
-	const playerScore = players.map(player => player.hand).reduce((amount, cards) => {
-		amount += cards.reduce((s, c) => s += c.score, 0); // eslint-disable-line
-		return amount;
-	}, 0);
+	const playerScore = players.map(player => player.hand)
+		.reduce((amount, cards) => amount + cards.reduce((s, c) => s + c.score, 0), 0);
 	await send(bot.webhooks.uno, `Score: ${playerScore}`);
 }
 

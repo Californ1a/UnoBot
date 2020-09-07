@@ -28,7 +28,7 @@ async function uno(bot, msg) {
 		} catch (e) {
 			await send(msg.channel, "Took too long to respond. Uno will continue.");
 			bot.unoAwaitingPlayers = false;
-			console.log(e);
+			console.error(e);
 		}
 	} else if (!bot.unoAwaitingPlayers) {
 		bot.unoAwaitingPlayers = true;
@@ -54,8 +54,9 @@ async function uno(bot, msg) {
 			});
 			const check = await beginning(bot, hook, msg, players);
 			bot.unoAwaitingPlayers = false;
+			bot.unogame.unoPlayers = players;
 			if (!check) {
-				doBotTurn(bot, msg);
+				doBotTurn(bot, msg, players);
 			} else if (check[0]) {
 				bot.unogame.unoPlayers = check;
 			}
@@ -63,8 +64,9 @@ async function uno(bot, msg) {
 			const hook = unobot;
 			const check = await beginning(bot, hook, msg, players);
 			bot.unoAwaitingPlayers = false;
+			bot.unogame.unoPlayers = players;
 			if (!check) {
-				doBotTurn(bot, msg);
+				doBotTurn(bot, msg, players);
 			} else if (check[0]) {
 				bot.unogame.unoPlayers = check;
 			}
