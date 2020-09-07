@@ -5,7 +5,7 @@ const {
 	getCardImage,
 } = require("./card");
 const send = require("./send");
-const showHand = require("./showHand");
+const getHand = require("./getHand");
 const delay = require("./delay");
 const msgAllPlayers = require("./msgAllPlayers");
 
@@ -47,7 +47,6 @@ async function nextTurn(bot, msg, players = bot.unogame.unoPlayers) {
 	// } else {
 	// 	showHand(bot, msg, bot.unogame.currentPlayer);
 	// }
-	showHand(bot, msg, bot.unogame.currentPlayer, players);
 	if (bot.unogame.currentPlayer.name === bot.user.id) {
 		await delay(2000);
 		return null;
@@ -55,6 +54,11 @@ async function nextTurn(bot, msg, players = bot.unogame.unoPlayers) {
 			but then recursive requires,
 			so pass a value back up the stack instead */
 	}
+	const {
+		hand,
+		sendTo,
+	} = await getHand(bot, bot.unogame.currentPlayer, players);
+	await send(sendTo, `${user} Your Uno hand: ${hand}`);
 	return players;
 }
 
@@ -62,21 +66,26 @@ async function sendWinMessage(bot, winner, score, players) {
 	// console.log(players);
 	if (players.length === 2 && players.includes(bot.user.id)) {
 		await send(bot.webhooks.uno, `${winner} wins! Score: ${score}`);
+		const loser = players.filter(p => p !== winner.id)[0];
+		const {
+			hand,
+			sendTo,
+		} = await getHand(bot, loser, players);
+		await send(sendTo, `${(loser === bot.user.id) ? `${bot.user}'s` : "Your"} final hand: ${hand}`);
 	} else {
 		const previousPlayer = {
 			id: null,
 		};
 		await msgAllPlayers(bot, players, previousPlayer, `${winner} wins! Score: ${score}`);
-		// const fetchPlayers = players.map(p => bot.users.fetch(p));
-		// const users = await Promise.all(fetchPlayers);
-		// const sendUsers = users.map(u => send(u, `${winner} wins! Score: ${score}`));
-		// await Promise.all(sendUsers);
 
-		// for (const player of players) {
-		// 	bot.users.fetch(player).then((user) => {
-		// 		send(user, `${winner} wins! Score: ${score}`);
-		// 	});
-		// }
+		const losers = players.filter(p => p !== winner.id);
+		const fetchHands = losers.map(async p => getHand(bot, p, players));
+		const hands = await Promise.all(fetchHands);
+		const handLines = [];
+		for (const hand of hands) {
+			handLines.push(`${hand.user}'s final hand: ${hand.hand}`);
+		}
+		msgAllPlayers(bot, players, previousPlayer, handLines.join("\n"));
 	}
 }
 

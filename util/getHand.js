@@ -1,14 +1,10 @@
-const send = require("./send");
-
-async function showHand(bot, msg, player, players) {
+async function getHand(bot, player, players) {
 	let p = player;
 	if (player.name) {
 		p = player.name;
 	}
 	const user = await bot.users.fetch(p);
-	if (user.bot) {
-		return;
-	}
+
 	const handArr = bot.unogame.getPlayer(p).hand; // .toString().toLowerCase().split(",");
 	const hand = [];
 	for (const card of handArr) {
@@ -27,7 +23,12 @@ async function showHand(bot, msg, player, players) {
 		// A player did the hand command in DM during player-to-player game while not on their turn
 		sendTo = user;
 	}
-	await send(sendTo, `${user} Your Uno hand: ${hand.join(", ")}`); // If only inline DMs were a thing - direct msg works but is annoying
+	return {
+		hand: hand.join(", "),
+		sendTo,
+		user,
+	}; // If only inline DMs were a thing - direct msg works but is annoying
+	// send(sendTo, `${user} Your Uno hand: ${hand.join(", ")}`);
 }
 
-module.exports = showHand;
+module.exports = getHand;

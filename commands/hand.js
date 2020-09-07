@@ -1,14 +1,19 @@
 const send = require("../util/send");
-const showHand = require("../util/showHand");
+const getHand = require("../util/getHand");
 
-async function hand(bot, msg) {
+async function handCmd(bot, msg) {
 	if (typeof bot.unogame.unoRunning === "boolean" && bot.unogame.unoRunning) {
 		if (bot.unogame.unoPlayers && bot.unogame.unoPlayers.includes(msg.author.id)) {
-			showHand(bot, msg, bot.unogame.getPlayer(msg.author.id), bot.unogame.unoPlayers);
+			const {
+				hand,
+				sendTo,
+				user,
+			} = await getHand(bot, msg.author.id, bot.unogame.unoPlayers);
+			await send(sendTo, `${user} Your Uno hand: ${hand}`);
 		}
 	} else {
 		await send(msg.channel, "Uno isn't running.");
 	}
 }
 
-module.exports.run = hand;
+module.exports.run = handCmd;
