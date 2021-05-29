@@ -11,6 +11,7 @@ const msgAllPlayers = require("./msgAllPlayers");
 
 async function resetGame(bot) {
 	bot.unogame.unoPlayers = [];
+	bot.unogame.end = false;
 	bot.unogame.unoRunning = false;
 	bot.unogame = {};
 	if (bot.webhooks.uno.name === "UnoBot") {
@@ -20,7 +21,7 @@ async function resetGame(bot) {
 }
 
 async function nextTurn(bot, msg, players = bot.unogame.unoPlayers) {
-	if (!bot.unogame) {
+	if (!bot.unogame || bot.unogame.end) {
 		return players;
 	}
 	const user = await bot.users.fetch(bot.unogame.currentPlayer.name);
@@ -85,7 +86,7 @@ async function sendWinMessage(bot, winner, score, players) {
 		for (const hand of hands) {
 			handLines.push(`${hand.user}'s final hand: ${hand.hand}`);
 		}
-		msgAllPlayers(bot, players, previousPlayer, handLines.join("\n"));
+		await msgAllPlayers(bot, players, previousPlayer, handLines.join("\n"));
 	}
 }
 
@@ -99,6 +100,7 @@ async function startGame(bot, msg, players) {
 	// console.log(players);
 	bot.unogame.on("end", async (err, winner, score) => {
 		// console.log(players);
+		bot.unogame.end = true;
 		const user = await bot.users.fetch(winner.name); // winner.name === member.id
 		await sendWinMessage(bot, user, score, players);
 		await resetGame(bot, msg);
