@@ -1,6 +1,6 @@
 {
-	"name": "unobot",
-	"version": "1.1.0",
+	"name": "slash-commands-unobot",
+	"version": "0.0.1",
 	"description": "",
 	"main": "index.js",
 	"scripts": {
@@ -15,8 +15,8 @@
 	},
 	"dependencies": {
 		"colors": "^1.4.0",
-		"discord.js": "^12.3.1",
+		"discord.js": "github:discordjs/discord.js",
 		"dotenv": "^8.2.0",
-		"uno-engine": "0.0.2"
+		"uno-engine": "^0.0.2"
 	}
 }

@@ -12,7 +12,7 @@
 		"SharedArrayBuffer": "readonly"
 	},
 	"parserOptions": {
-		"ecmaVersion": 2018
+		"ecmaVersion": 2020
 	},
 	"rules": {
 		"quotes": ["error", "double"],
@@ -37,8 +37,10 @@
 			"selector": "WithStatement",
 			"message": "`with` is disallowed in strict mode because it makes code impossible to predict and optimize."
 		}],
+		"object-curly-newline": ["error", { "consistent": true }],
 		"no-tabs": 0,
 		"no-console": 0,
-		"no-nested-ternary": 0
+		"no-nested-ternary": 0,
+		"no-await-in-loop": 0
 	}
 }
