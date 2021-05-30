@@ -62,7 +62,6 @@ async function gameEnd(chan, err, winner, score) {
 	if (err) {
 		errHandler("error", err);
 	}
-	console.log("winner", winner);
 	const player = chan.uno.players.get(winner.name);
 
 	const losers = chan.uno.players.filter(p => p.id !== winner.name);
@@ -80,27 +79,39 @@ const unoBotThink = ["*evil grin*..", "You'll pay for that...", "woooot..", "Dum
 
 async function botPlay(chan, matchingHand) {
 	const player = chan.uno.game.currentPlayer;
-	await sleep(1000);
+	await sleep(2000);
 	if (Math.floor(Math.random() * unoBotThink.length) < Math.floor(unoBotThink.length / 3)) {
 		await chan.send(unoBotThink[Math.floor(Math.random() * unoBotThink.length)]);
 		await sleep(2000);
 	}
 
-	// wild and wd4 set color
-	const cardColors = [];
-	player.hand.filter(card => !card.value.toString().includes("WILD")).forEach((card) => {
-		cardColors.push(card.color.toString());
-	});
-	const cardCols = countOccurrences(cardColors);
+	const card = matchingHand[0]; // TODO: Improve logic on which card to pick
 
-	const keys = Object.keys(cardCols);
-	const mostColor = keys.reduce((a, e) => ((cardCols[e] > cardCols[a]) ? e : a), keys[0]);
-
-	const card = matchingHand[0];
 	if (card.value.toString().includes("WILD")) {
-		card.color = Colors.get(mostColor);
+		if (player.hand.length > 1) {
+			// Choose color to set wild/wd4 to
+			const cardColors = [];
+			player.hand.filter(c => !c.value.toString().includes("WILD")).forEach((c) => {
+				cardColors.push(c.color.toString());
+			});
+			const cardCols = countOccurrences(cardColors);
+
+			const keys = Object.keys(cardCols);
+			const colorArr = keys.reduce((a, c) => {
+				for (let i = 0; i < cardCols[c]; i += 1) {
+					a.push(c);
+				}
+				return a;
+			}, []);
+			const randomIndex = Math.floor(Math.random() * colorArr.length);
+			const randomColor = colorArr[randomIndex];
+
+			card.color = Colors.get(randomColor);
+		} else {
+			// Color doesn't matter if wild/wd4 is last card in hand
+			card.color = Colors.get("BLUE");
+		}
 	}
-	// end wild color set
 
 	if (player.hand.length === 2) {
 		await chan.send("UNO!");
@@ -110,23 +121,25 @@ async function botPlay(chan, matchingHand) {
 	const val = card.value.toString();
 	const commandValue = (val.includes("_")) ? val.split("_").map(word => ((word !== "FOUR") ? word.charAt(0) : "4")).join("").toLowerCase() : val.toLowerCase();
 
-	await chan.send(`/play ${commandColor} ${commandValue}`);
+	await chan.send(`\`/play ${commandColor} ${commandValue}\``);
 	chan.uno.game.play(card); // TODO: Improve logic on which card to pick
 	if (player.hand.length !== 0 && (chan.uno.game.discardedCard.value.toString().match(/^(draw_two|wild_draw_four)$/i))) {
 		chan.uno.game.draw();
 	}
+	await sleep(1000);
 }
 
 async function doBotTurn(chan) {
 	const player = chan.uno.game.currentPlayer;
-	if (player.name !== chan.guild.me.id) return false;
+	if (player.name !== chan.guild.me.id) return;
 	let matchingHand = player.hand.filter(card => (card.color === chan.uno.game.discardedCard.color
 		|| card.value === chan.uno.game.discardedCard.value
 		|| card.value.toString().includes("WILD")));
-	console.log(matchingHand.map(c => c.toString()));
+	console.log(player.hand.map(c => c.toString()), matchingHand.map(c => c.toString()));
+	await sleep(2000);
 	if (matchingHand.length === 0) {
 		await sleep(2000);
-		await chan.send("/draw");
+		await chan.send("`/draw`");
 		chan.uno.game.draw();
 		matchingHand = player.hand.filter(card => (card.color === chan.uno.game.discardedCard.color
 			|| card.value === chan.uno.game.discardedCard.value
@@ -134,33 +147,19 @@ async function doBotTurn(chan) {
 		console.log(matchingHand.map(c => c.toString()));
 		if (matchingHand.length === 0) {
 			await sleep(2000);
-			await chan.send("/pass");
+			await chan.send("`/pass`");
 			chan.uno.game.pass();
 			await sleep(1000);
-			return false;
+			return;
 		}
 		await botPlay(chan, matchingHand);
-		if (chan.uno && chan.uno.game.getPlayer(chan.guild.me.id).hand.length === 0) {
-			return false;
-		}
-		if (chan.uno.game.discardedCard.value.toString().match(/^(skip|reverse|draw_two|wild_draw_four)$/i)
-			&& chan.uno.players.size === 2) {
-			return true;
-		}
-		return false;
+		return;
 	}
 	await botPlay(chan, matchingHand);
-	if (chan.uno && chan.uno.game.getPlayer(chan.guild.me.id).hand.length === 0) {
-		return false;
-	}
-	if (chan.uno.game.discardedCard.value.toString().match(/^(skip|reverse|draw_two|wild_draw_four)$/i)
-		&& chan.uno.players.size === 2) {
-		return true;
-	}
-	return false;
 }
 
 async function nextTurn(chan) {
+	if (!chan.uno) return;
 	const currentPlayer = chan.uno.players.get(chan.uno.game.currentPlayer.name);
 
 	const { handArr, handStr } = getHand(chan.uno.game.currentPlayer);
@@ -179,7 +178,7 @@ async function nextTurn(chan) {
 	const file = { files: [getCardImage(chan.uno.game.discardedCard)] };
 	await chan.send(str, file);
 
-	if (currentPlayer.id === chan.guild.me.id) {
+	if (chan.uno && currentPlayer.id === chan.guild.me.id) {
 		await doBotTurn(chan);
 		await nextTurn(chan);
 	}
@@ -227,15 +226,21 @@ bot.on("interaction", async (interaction) => {
 	// console.log(interaction);
 	const chan = interaction.channel;
 	if (interaction.commandName === "uno") {
-		if (chan.uno?.running && !chan.uno?.awaitingPlayers) {
-			if (opts.end && interaction.member.id === chan.uno.ownerID) {
+		if (chan.uno?.running && !opts.end) {
+			await interaction.reply("An Uno game is already running in this channel.", { ephemeral: true });
+			return;
+		}
+		if (chan.uno?.running && opts.end && interaction.member.id !== chan.uno.ownerID) {
+			await interaction.reply("Only the person who started the game can force-end it early.", { ephemeral: true });
+			return;
+		}
+		if (chan.uno?.running && opts.end && interaction.member.id === chan.uno.ownerID) {
+			if (opts.end === "True") {
 				resetGame(chan);
-				interaction.reply("Uno has been force ended.");
+				await interaction.reply("Uno has been force ended.");
 				return;
 			}
-		}
-		if (chan.uno?.running) {
-			await interaction.reply("An Uno game is already running in this channel.", { ephemeral: true });
+			await interaction.reply("Uno will continue.", { ephemeral: true });
 			return;
 		}
 		chan.uno = { running: true, ownerID: interaction.member.id };
