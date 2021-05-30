@@ -78,6 +78,7 @@ async function gameEnd(chan, err, winner, score) {
 const unoBotThink = ["*evil grin*..", "You'll pay for that...", "woooot..", "Dum de dum..", "hehe..", "Oh boy..", "hrm..", "Lets see here..", "uh..", "Hmm, you're good..", "Decisions decisions..", "Ahah!...", "Eeny Meeny Miney Moe..", "LOL..", "Oh dear..", "Errr..", "Ah me brain!..."];
 
 async function botPlay(chan, matchingHand) {
+	if (!chan.uno) return;
 	const player = chan.uno.game.currentPlayer;
 	await sleep(2000);
 	if (Math.floor(Math.random() * unoBotThink.length) < Math.floor(unoBotThink.length / 3)) {
@@ -130,12 +131,12 @@ async function botPlay(chan, matchingHand) {
 }
 
 async function doBotTurn(chan) {
+	if (!chan.uno) return;
 	const player = chan.uno.game.currentPlayer;
 	if (player.name !== chan.guild.me.id) return;
 	let matchingHand = player.hand.filter(card => (card.color === chan.uno.game.discardedCard.color
 		|| card.value === chan.uno.game.discardedCard.value
 		|| card.value.toString().includes("WILD")));
-	console.log(player.hand.map(c => c.toString()), matchingHand.map(c => c.toString()));
 	await sleep(2000);
 	if (matchingHand.length === 0) {
 		await sleep(2000);
@@ -144,7 +145,6 @@ async function doBotTurn(chan) {
 		matchingHand = player.hand.filter(card => (card.color === chan.uno.game.discardedCard.color
 			|| card.value === chan.uno.game.discardedCard.value
 			|| card.value.toString().includes("WILD")));
-		console.log(matchingHand.map(c => c.toString()));
 		if (matchingHand.length === 0) {
 			await sleep(2000);
 			await chan.send("`/pass`");
@@ -179,8 +179,12 @@ async function nextTurn(chan) {
 	await chan.send(str, file);
 
 	if (chan.uno && currentPlayer.id === chan.guild.me.id) {
-		await doBotTurn(chan);
-		await nextTurn(chan);
+		try {
+			await doBotTurn(chan);
+			await nextTurn(chan);
+		} catch (e) {
+			errHandler("error", e);
+		}
 	}
 
 	// chan.uno.players.forEach((pla) => {
@@ -226,32 +230,42 @@ bot.on("interaction", async (interaction) => {
 	// console.log(interaction);
 	const chan = interaction.channel;
 	if (interaction.commandName === "uno") {
-		if (chan.uno?.running && !opts.end) {
+		if (chan.uno?.running && typeof opts.end === "undefined") {
 			await interaction.reply("An Uno game is already running in this channel.", { ephemeral: true });
 			return;
 		}
-		if (chan.uno?.running && opts.end && interaction.member.id !== chan.uno.ownerID) {
+		if (chan.uno?.running && typeof opts.end !== "undefined" && interaction.member.id !== chan.uno.ownerID) {
 			await interaction.reply("Only the person who started the game can force-end it early.", { ephemeral: true });
 			return;
 		}
-		if (chan.uno?.running && opts.end && interaction.member.id === chan.uno.ownerID) {
-			if (opts.end === "True") {
+		console.log(opts.end, typeof opts.end);
+		if (chan.uno?.running
+			&& typeof opts.end !== "undefined"
+			&& interaction.member.id === chan.uno.ownerID) {
+			if (opts.end) {
 				resetGame(chan);
-				await interaction.reply("Uno has been force ended.");
+				await interaction.reply("Uno has been force-ended.");
 				return;
 			}
 			await interaction.reply("Uno will continue.", { ephemeral: true });
 			return;
+		}
+		let solo = false;
+		if (!chan.uno?.running && opts.solo) {
+			solo = true;
 		}
 		chan.uno = { running: true, ownerID: interaction.member.id };
 		chan.uno.awaitingPlayers = true;
 		chan.uno.players = new Collection();
 		chan.uno.players.set(interaction.member.id, interaction.member);
 		chan.uno.players.get(interaction.member.id).interaction = interaction;
-
-		const startTime = 10;
-		await interaction.reply(`An Uno game will be started in ${startTime}s! Use \`/join\` to join.`);
-		await sleep(startTime * 1000);
+		if (!solo) {
+			const startTime = 30;
+			await interaction.reply(`An Uno game will be started in ${startTime}s! Use \`/join\` to join.`);
+			await sleep(startTime * 1000);
+		} else {
+			await interaction.reply("Uno is starting!");
+		}
 		chan.uno.awaitingPlayers = false;
 		const players = chan.uno.players.map(p => p.id);
 		if (players.length < 2) {
@@ -266,8 +280,11 @@ bot.on("interaction", async (interaction) => {
 		}
 		// await interaction.followUp("Game will now start!");
 		chan.uno.game = new Game(players);
-
-		await nextTurn(chan);
+		try {
+			await nextTurn(chan);
+		} catch (e) {
+			errHandler("error", e);
+		}
 		chan.uno.game.on("end", (...args) => gameEnd(chan, ...args));
 	} else if (interaction.commandName === "join") {
 		if (!chan.uno?.running) {
@@ -369,7 +386,11 @@ bot.on("interaction", async (interaction) => {
 		await interaction.reply(`Played ${getPlainCard(card)}`);
 		if (!chan.uno) return;
 		chan.uno.drawn = false;
-		await nextTurn(chan);
+		try {
+			await nextTurn(chan);
+		} catch (e) {
+			errHandler("error", e);
+		}
 	} else if (interaction.commandName === "pass") {
 		if (!chan.uno?.running) {
 			await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
@@ -391,7 +412,11 @@ bot.on("interaction", async (interaction) => {
 		chan.uno.players.get(player.name).interaction = interaction;
 		await interaction.reply("Passed");
 		chan.uno.drawn = false;
-		await nextTurn(chan);
+		try {
+			await nextTurn(chan);
+		} catch (e) {
+			errHandler("error", e);
+		}
 	}
 });
 
