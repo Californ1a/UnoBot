@@ -2,14 +2,14 @@
 	"name": "uno",
 	"description": "Start Uno!",
 	"options": [{
-		"name": "end",
-		"type": "BOOLEAN",
-		"description": "Force end a currently-running game.",
-		"required": false
-	}, {
 		"name": "solo",
 		"type": "BOOLEAN",
 		"description": "Skip the countdown and immediately start a solo game against the bot.",
+		"required": false
+	}, {
+		"name": "end",
+		"type": "BOOLEAN",
+		"description": "Force end a currently-running game.",
 		"required": false
 	}]
 }, {

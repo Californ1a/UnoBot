@@ -238,7 +238,6 @@ bot.on("interaction", async (interaction) => {
 			await interaction.reply("Only the person who started the game can force-end it early.", { ephemeral: true });
 			return;
 		}
-		console.log(opts.end, typeof opts.end);
 		if (chan.uno?.running
 			&& typeof opts.end !== "undefined"
 			&& interaction.member.id === chan.uno.ownerID) {
@@ -269,14 +268,13 @@ bot.on("interaction", async (interaction) => {
 		chan.uno.awaitingPlayers = false;
 		const players = chan.uno.players.map(p => p.id);
 		if (players.length < 2) {
-			await interaction.followUp("No one joined, the bot will play!");
 			chan.uno.players.set(chan.guild.me.id, chan.guild.me);
 			players.push(chan.guild.me.id);
-			await sleep(7000);
-			// TODO: Bot joins
-			// await interaction.followUp("Not enough players joined, game not started.");
-			// resetGame(chan);
-			// return;
+			if (!solo) {
+				await interaction.followUp("No one joined, the bot will play!");
+				await sleep(4000);
+			}
+			await sleep(3000);
 		}
 		// await interaction.followUp("Game will now start!");
 		chan.uno.game = new Game(players);
