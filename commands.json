@@ -1,0 +1,104 @@
+[{
+	"name": "uno",
+	"description": "Start Uno!",
+	"options": [{
+		"name": "end",
+		"type": "BOOLEAN",
+		"description": "Force end a currently-running game.",
+		"required": false
+	}]
+}, {
+	"name": "score",
+	"description": "View your score"
+}, {
+	"name": "play",
+	"description": "Play a card",
+	"options": [{
+		"name": "color",
+		"type": "STRING",
+		"description": "The color of the card to play",
+		"required": true,
+		"choices": [{
+			"name": "Blue",
+			"value": "BLUE"
+		}, {
+			"name": "Green",
+			"value": "GREEN"
+		}, {
+			"name": "Red",
+			"value": "RED"
+		}, {
+			"name": "Yellow",
+			"value": "YELLOW"
+		}]
+	}, {
+		"name": "value",
+		"type": "STRING",
+		"description": "The value of the card to play",
+		"required": true,
+		"choices": [{
+			"name": "0",
+			"value": "ZERO"
+		}, {
+			"name": "1",
+			"value": "ONE"
+		}, {
+			"name": "2",
+			"value": "TWO"
+		}, {
+			"name": "3",
+			"value": "THREE"
+		}, {
+			"name": "4",
+			"value": "FOUR"
+		}, {
+			"name": "5",
+			"value": "FIVE"
+		}, {
+			"name": "6",
+			"value": "SIX"
+		}, {
+			"name": "7",
+			"value": "SEVEN"
+		}, {
+			"name": "8",
+			"value": "EIGHT"
+		}, {
+			"name": "9",
+			"value": "NINE"
+		}, {
+			"name": "Skip",
+			"value": "SKIP"
+		}, {
+			"name": "Reverse",
+			"value": "REVERSE"
+		}, {
+			"name": "Draw Two",
+			"value": "DRAW_TWO"
+		}, {
+			"name": "Wild",
+			"value": "WILD"
+		}, {
+			"name": "Wild Draw Four",
+			"value": "WILD_DRAW_FOUR"
+		}]
+	}]
+}, {
+	"name": "pass",
+	"description": "Pass your turn"
+}, {
+	"name": "hand",
+	"description": "View your hand or count cards in another player's hand",
+	"options": [{
+		"name": "player",
+		"type": "USER",
+		"description": "Count cards remaining in this player's hand",
+		"required": false
+	}]
+}, {
+	"name": "draw",
+	"description": "Draw a card"
+}, {
+	"name": "join",
+	"description": "Join an Uno game"
+}]

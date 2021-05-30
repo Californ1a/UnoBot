@@ -5,6 +5,7 @@ const { Game, Card, Values, Colors } = require("uno-engine");
 const util = require("util");
 const errHandler = require("./err.js");
 const cardImages = require("./unocardimages.json");
+const commandData = require("./commands.json");
 
 const sleep = util.promisify(setTimeout);
 const bot = new Client({ intents: [Intents.ALL] });
@@ -39,6 +40,10 @@ function getPlainCard(card) {
 	return hand[0];
 }
 
+function resetGame(chan) {
+	chan.uno = null;
+}
+
 function getHand(player) {
 	const handArr = player.hand;
 	const hand = [];
@@ -50,6 +55,24 @@ function getHand(player) {
 		handArr: hand,
 		player,
 	};
+}
+
+async function gameEnd(chan, err, winner, score) {
+	if (err) {
+		errHandler("error", err);
+	}
+	console.log("winner", winner);
+	const player = chan.uno.players.get(winner.name);
+
+	const losers = chan.uno.players.filter(p => p.id !== winner.name);
+	const hands = losers.map(p => getHand(chan.uno.game.getPlayer(p.id)));
+
+	const handLines = [];
+	for (const hand of hands) {
+		handLines.push(`${chan.uno.players.get(hand.player.name)}'s final hand: ${hand.handStr}`);
+	}
+	await chan.send(`Game finished!\n${"-".repeat(35)}\n${player} wins! Score: ${score}\n${"-".repeat(35)}\n\n${handLines.join("\n")}`);
+	resetGame(chan);
 }
 
 async function nextTurn(chan) {
@@ -86,110 +109,7 @@ bot.on("message", async (msg) => {
 
 	const cmd = msg.content.slice(1).split(" ")[0].toLowerCase();
 	if (cmd === "deploy" && (msg.author.id === bot.application?.owner.id || bot.application?.owner.members.has(msg.author.id))) {
-		const data = [{
-			name: "uno",
-			description: "Start Uno!",
-			options: [{
-				name: "end",
-				type: "BOOLEAN",
-				description: "Force end a currently-running game.",
-				required: false,
-			}],
-		}, {
-			name: "score",
-			description: "View your score",
-		}, {
-			name: "play",
-			description: "Play a card",
-			options: [{
-				name: "color",
-				type: "STRING",
-				description: "The color of the card to play",
-				required: true,
-				choices: [{
-					name: "Blue",
-					value: "BLUE",
-				}, {
-					name: "Green",
-					value: "GREEN",
-				}, {
-					name: "Red",
-					value: "RED",
-				}, {
-					name: "Yellow",
-					value: "YELLOW",
-				}],
-			}, {
-				name: "value",
-				type: "STRING",
-				description: "The value of the card to play",
-				required: true,
-				choices: [{
-					name: "0",
-					value: "ZERO",
-				}, {
-					name: "1",
-					value: "ONE",
-				}, {
-					name: "2",
-					value: "TWO",
-				}, {
-					name: "3",
-					value: "THREE",
-				}, {
-					name: "4",
-					value: "FOUR",
-				}, {
-					name: "5",
-					value: "FIVE",
-				}, {
-					name: "6",
-					value: "SIX",
-				}, {
-					name: "7",
-					value: "SEVEN",
-				}, {
-					name: "8",
-					value: "EIGHT",
-				}, {
-					name: "9",
-					value: "NINE",
-				}, {
-					name: "Skip",
-					value: "SKIP",
-				}, {
-					name: "Reverse",
-					value: "REVERSE",
-				}, {
-					name: "Draw Two",
-					value: "DRAW_TWO",
-				}, {
-					name: "Wild",
-					value: "WILD",
-				}, {
-					name: "Wild Draw Four",
-					value: "WILD_DRAW_FOUR",
-				}],
-			}],
-		}, {
-			name: "pass",
-			description: "Pass your turn",
-		}, {
-			name: "hand",
-			description: "View your hand or count cards in another player's hand",
-			options: [{
-				name: "player",
-				type: "USER",
-				description: "Count cards remaining in this player's hand",
-				required: false,
-			}],
-		}, {
-			name: "draw",
-			description: "Draw a card",
-		}, {
-			name: "join",
-			description: "Join an Uno game",
-		}];
+		const data = commandData;
 
 		await msg.guild.commands.set(data);
 		await msg.reply("Success");
@@ -221,7 +141,7 @@ bot.on("interaction", async (interaction) => {
 	if (interaction.commandName === "uno") {
 		if (chan.uno?.running && !chan.uno?.awaitingPlayers) {
 			if (opts.end && interaction.member.id === chan.uno.ownerID) {
-				chan.uno = null;
+				resetGame(chan);
 				interaction.reply("Uno has been force ended.");
 				return;
 			}
@@ -243,27 +163,14 @@ bot.on("interaction", async (interaction) => {
 		if (players.length < 2) {
 			// TODO: Bot joins
 			await interaction.followUp("Not enough players joined, game not started.");
-			chan.uno = null;
+			resetGame(chan);
 			return;
 		}
 		// await interaction.followUp("Game will now start!");
 		chan.uno.game = new Game(players);
 
 		await nextTurn(chan);
-		chan.uno.game.on("end", async (err, winner, score) => {
-			console.log("winner", winner);
-			const player = chan.uno.players.get(winner.name);
-
-			const losers = chan.uno.players.filter(p => p.id !== winner.name);
-			const hands = losers.map(p => getHand(chan.uno.game.getPlayer(p.id)));
-
-			const handLines = [];
-			for (const hand of hands) {
-				handLines.push(`${chan.uno.players.get(hand.player.name)}'s final hand: ${hand.handStr}`);
-			}
-			await chan.send(`Game finished!\n${"-".repeat(35)}\n${player} wins! Score: ${score}\n${"-".repeat(35)}\n\n${handLines.join("\n")}`);
-			chan.uno = null;
-		});
+		chan.uno.game.on("end", (...args) => gameEnd(chan, ...args));
 	} else if (interaction.commandName === "join") {
 		if (!chan.uno?.running) {
 			await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
