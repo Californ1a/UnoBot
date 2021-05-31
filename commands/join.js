@@ -1,5 +1,4 @@
-async function join(bot, interaction) {
-	const chan = interaction.channel;
+async function join(interaction, chan) {
 	if (!chan.uno?.running) {
 		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
 		return;

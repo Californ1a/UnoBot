@@ -63,8 +63,14 @@ async function botPlay(chan, matchingHand) {
 	if (!chan.uno || id !== chan.uno.id) return;
 	await chan.send(`\`/play ${commandColor} ${commandValue}\``);
 	chan.uno.game.play(card);
+	const drawn = { didDraw: false, player: chan.uno.players.get(chan.uno.game.currentPlayer.name) };
 	if (player.hand.length !== 0 && (chan.uno.game.discardedCard.value.toString().match(/^(draw_two|wild_draw_four)$/i))) {
 		chan.uno.game.draw();
+		drawn.didDraw = true;
+	}
+	if (drawn.didDraw) {
+		const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
+		await chan.send(`${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.`);
 	}
 	await sleep(1000);
 }

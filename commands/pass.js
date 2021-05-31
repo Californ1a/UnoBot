@@ -1,8 +1,7 @@
 const errHandler = require("../util/err.js");
 const { nextTurn } = require("../game/game.js");
 
-async function pass(bot, interaction) {
-	const chan = interaction.channel;
+async function pass(interaction, chan) {
 	if (!chan.uno?.running) {
 		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
 		return;
