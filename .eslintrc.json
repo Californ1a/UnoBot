@@ -38,6 +38,7 @@
 			"message": "`with` is disallowed in strict mode because it makes code impossible to predict and optimize."
 		}],
 		"object-curly-newline": ["error", { "consistent": true }],
+		"import/extensions": ["error", "ignorePackages"],
 		"no-tabs": 0,
 		"no-console": 0,
 		"no-nested-ternary": 0,
