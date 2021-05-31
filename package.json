@@ -15,7 +15,7 @@
 	},
 	"dependencies": {
 		"colors": "^1.4.0",
-		"discord.js": "github:discordjs/discord.js",
+		"discord.js": "github:monbrey/discord.js#message-components",
 		"dotenv": "^8.2.0",
 		"uno-engine": "0.0.2"
 	}

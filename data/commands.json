@@ -1,4 +1,7 @@
 [{
+	"name": "test",
+	"description": "Testing"
+}, {
 	"name": "uno",
 	"description": "Start Uno!",
 	"options": [{

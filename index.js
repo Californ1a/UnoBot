@@ -22,7 +22,9 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("interaction", async (interaction) => {
-	if (!interaction.isCommand()) return;
+	if (!interaction.isCommand()) {
+		return;
+	}
 	let opts = {};
 	let optString = "";
 	if (interaction.options?.length > 0) {
