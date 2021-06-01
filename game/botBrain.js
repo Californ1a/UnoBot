@@ -74,7 +74,11 @@ async function botPlay(chan, matchingHand, callUno = true) {
 	}
 	if (drawn.didDraw) {
 		const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
-		await chan.send(`${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.`);
+		await chan.send(`${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.`, {
+			allowedMentions: {
+				users: [],
+			},
+		});
 	}
 	await sleep(1000);
 }
@@ -87,7 +91,7 @@ async function botTurn(chan) {
 	let matchingHand = player.hand.filter(card => (card.color === chan.uno.game.discardedCard.color
 		|| card.value === chan.uno.game.discardedCard.value
 		|| card.value.toString().includes("WILD")));
-	await sleep(2000, 5000);
+	await sleep(2000, 4000);
 	if (matchingHand.length === 0) {
 		chan.startTyping();
 		await sleep(1000, 1500);

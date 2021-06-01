@@ -1,9 +1,10 @@
-const { MessageActionRow, MessageButton } = require("discord.js");
+const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const { Card, Values, Colors } = require("uno-engine");
 const errHandler = require("../util/err.js");
 const botTurn = require("./botBrain.js");
 const cardImages = require("../data/unocardimages.json");
 const sleep = require("./sleep.js");
+const start = require("./gameStart.js");
 
 function getCardImage(card) {
 	const value = card.value.toString();
@@ -40,24 +41,6 @@ function getHand(player) {
 
 function reset(chan) {
 	chan.uno = null;
-}
-
-async function finished(chan, err, winner, score) {
-	if (err) {
-		errHandler("error", err);
-	}
-	const player = chan.uno.players.get(winner.name);
-
-	const losers = chan.uno.players.filter(p => p.id !== winner.name);
-	const hands = losers.map(p => getHand(chan.uno.game.getPlayer(p.id)));
-
-	const handLines = [];
-	for (const hand of hands) {
-		handLines.push(`${chan.uno.players.get(hand.player.name)}'s final hand: ${hand.handStr}`);
-	}
-	reset(chan);
-	await sleep(1000);
-	await chan.send(`Game finished!\n${"-".repeat(35)}\n${player} wins! Score: ${score}\n${"-".repeat(35)}\n\n${handLines.join("\n")}`);
 }
 
 function addButton(buttons, button) {
@@ -142,6 +125,56 @@ function createButtons(hand, discard) {
 	return buttons.map(b => new MessageActionRow().addComponents(b));
 }
 
+async function playedWildCard(inter, chan, value, pid) {
+	const colors = ["Blue", "Green", "Red", "Yellow"];
+	const buttons = colors.reduce((a, c) => addButton(a, new MessageButton()
+		.setCustomID(c.toUpperCase())
+		.setLabel(c)
+		.setStyle(colorToButtonStyle(c.toUpperCase()))), [
+		[],
+	]);
+	await inter.update(inter.message.content, {
+		components: buttons.map(b => new MessageActionRow().addComponents(b)),
+	});
+	const colorCollector = inter.message.createMessageComponentInteractionCollector(() => true, {
+		max: 1,
+	});
+	const inter2 = await new Promise((resolve) => {
+		colorCollector.on("collect", resolve);
+	});
+	console.log(`Collected ${inter2.customID}`);
+	if (chan.uno.game.currentPlayer.name !== inter.user.id
+		|| chan.uno.playerCustomID !== pid) {
+		inter.update(inter.message.content, { components: [] });
+		inter.followUp("You can't use old buttons.", { ephemeral: true });
+		return false;
+	}
+
+	let card = Card(Values.get(value), Colors.get(inter2.customID));
+	const p = chan.uno.game.currentPlayer;
+	card = p.getCardByValue(Values.get(value));
+	card.color = Colors.get(Colors.get(inter2.customID));
+	const drawn = { didDraw: false };
+	chan.uno.game.play(card);
+
+	if (chan.uno.game.discardedCard.value.toString() === "WILD_DRAW_FOUR") {
+		drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
+		chan.uno.game.draw();
+		drawn.didDraw = true;
+	}
+
+	await inter2.update(card.toString(), { components: [] });
+	chan.uno.players.get(p.name).interaction = inter2;
+	await inter2.followUp(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew 4 cards.` : ""}`, {
+		allowedMentions: {
+			users: [],
+		},
+	});
+	if (!chan.uno) return false;
+	chan.uno.drawn = false;
+	return true;
+}
+
 async function sendHandWithButtons(chan, player, handStr, rows) {
 	const handMsg = await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true, components: rows });
 	// console.log(handMsg);
@@ -170,7 +203,6 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 		const card = chan.uno.game.currentPlayer.hand[chan.uno.game.currentPlayer.hand.length - 1];
 		const name = (card.color) ? card.toString() : card.value.toString();
 		const n2 = (name.includes("WILD_DRAW")) ? "WD4" : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
-		// await interaction.reply(`You drew a ${n2.toLowerCase()}`, { ephemeral: true });
 		colorToButtonStyle(name.split(" ")[0]);
 
 		const cardBtn = new MessageButton()
@@ -195,7 +227,8 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 			.setStyle("SECONDARY")
 			.setEmoji("⏭️");
 		buttons = addButton(buttons, passBtn);
-
+		// TODO: change draw and pass to channel messages so other players can see them
+		// TODO: move buttons to a new ephemeral message
 		await inter.update(`You drew a ${n2.toLowerCase()}`, {
 			components: buttons.map(b => new MessageActionRow().addComponents(b)),
 		});
@@ -212,6 +245,10 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 			chan.uno.drawn = false;
 			return true;
 		}
+		if (inter2.customID.includes("NO_COLOR")) {
+			const ret = await playedWildCard(inter2, chan, card.value.toString(), pid);
+			return ret;
+		}
 
 		await inter2.update(inter.customID, { components: [] });
 		const drawn = { didDraw: false };
@@ -224,56 +261,21 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 		}
 		player.interaction = inter2;
 		const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
-		await inter2.followUp(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.` : ""}`, { ephemeral: false });
+		await inter2.followUp(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.` : ""}`, {
+			allowedMentions: {
+				users: [],
+			},
+			ephemeral: false,
+		});
 		if (!chan.uno) return false;
 		chan.uno.drawn = false;
 		return true;
 	}
 	if (cardArr[0] === "NO_COLOR") {
-		const colors = ["Blue", "Green", "Red", "Yellow"];
-		const buttons = colors.reduce((a, c) => addButton(a, new MessageButton()
-			.setCustomID(c.toUpperCase())
-			.setLabel(c)
-			.setStyle(colorToButtonStyle(c.toUpperCase()))), [
-			[],
-		]);
-		await inter.update(inter.message.content, {
-			components: buttons.map(b => new MessageActionRow().addComponents(b)),
-		});
-		const colorCollector = inter.message.createMessageComponentInteractionCollector(() => true, {
-			max: 1,
-		});
-		const inter2 = await new Promise((resolve) => {
-			colorCollector.on("collect", resolve);
-		});
-		console.log(`Collected ${inter2.customID}`);
-		if (chan.uno.game.currentPlayer.name !== inter.user.id
-			|| chan.uno.playerCustomID !== pid) {
-			inter.update(inter.message.content, { components: [] });
-			inter.followUp("You can't use old buttons.", { ephemeral: true });
-			return false;
-		}
-
-		let card = Card(Values.get(cardArr[1]), Colors.get(inter2.customID));
-		const p = chan.uno.game.currentPlayer;
-		card = p.getCardByValue(Values.get(cardArr[1]));
-		card.color = Colors.get(Colors.get(inter2.customID));
-		const drawn = { didDraw: false };
-		chan.uno.game.play(card);
-
-		if (chan.uno.game.discardedCard.value.toString() === "WILD_DRAW_FOUR") {
-			drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
-			chan.uno.game.draw();
-			drawn.didDraw = true;
-		}
-
-		await inter2.update(card.toString(), { components: [] });
-		chan.uno.players.get(p.name).interaction = inter2;
-		await inter2.followUp(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew 4 cards.` : ""}`);
-		if (!chan.uno) return false;
-		chan.uno.drawn = false;
-		return true;
+		const ret = await playedWildCard(inter, chan, cardArr[1], pid);
+		return ret;
 	}
+	console.log("inter.customID", inter.customID);
 	await inter.update(inter.customID, { components: [] });
 	const drawn = { didDraw: false };
 	const card = Card(Values.get(cardArr[1]), Colors.get(cardArr[0]));
@@ -285,7 +287,13 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 		drawn.didDraw = true;
 	}
 	player.interaction = inter;
-	await inter.followUp(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew 2 cards.` : ""}`, { ephemeral: false });
+	console.log("getPlainCard(card)", getPlainCard(card));
+	await inter.followUp(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew 2 cards.` : ""}`, {
+		allowedMentions: {
+			users: [],
+		},
+		ephemeral: false,
+	});
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
 	return true;
@@ -323,7 +331,7 @@ async function nextTurn(chan) {
 					return;
 				}
 			} else {
-				await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true });
+				await player.interaction.followUp(`Your Uno hand: ${handStr}\nToo many cards to create buttons - use \`/play\` command.`, { ephemeral: true });
 			}
 		} catch (e) {
 			await chan.send(`Could not send your hand, ${player}, use \`/hand\` to view it.`);
@@ -344,6 +352,81 @@ async function nextTurn(chan) {
 	// 	const p = chan.uno.game.getPlayer(pla.id);
 	// 	console.log(`${pla.id} - ${getHand(p).handArr.length} - ${getHand(p).handStr}`);
 	// });
+}
+
+async function finished(chan, err, winner, score) {
+	if (err) {
+		errHandler("error", err);
+	}
+	const player = chan.uno.players.get(winner.name);
+
+	const losers = chan.uno.players.filter(p => p.id !== winner.name);
+	const hands = losers.map(p => getHand(chan.uno.game.getPlayer(p.id)));
+
+	const handLines = [];
+	for (const hand of hands) {
+		handLines.push(`${chan.uno.players.get(hand.player.name)}'s final hand (${hand.handArr.length}): ${hand.handStr}`);
+	}
+	handLines.sort((a, b) => a.split(",").length - b.split(",").length);
+
+	const finalColor = chan.uno.game.discardedCard.color.toString();
+	reset(chan);
+
+	const startBtn = new MessageButton()
+		.setCustomID("START")
+		.setLabel("Start")
+		.setStyle("PRIMARY")
+		.setEmoji("⏩");
+	let buttons = addButton([
+		[],
+	], startBtn);
+
+	const quickStartBtn = new MessageButton()
+		.setCustomID("QUICK")
+		.setLabel("Quick Start")
+		.setStyle("SUCCESS")
+		.setEmoji("🏃");
+	buttons = addButton(buttons, quickStartBtn);
+
+	const botStartBtn = new MessageButton()
+		.setCustomID("BOT")
+		.setLabel("Bot Start")
+		.setStyle("SECONDARY")
+		.setEmoji("🤖");
+	buttons = addButton(buttons, botStartBtn);
+
+	await sleep(1000);
+
+	const colors = ["BLUE", "GREEN", "RED", "YELLOW"];
+
+	const hexColors = ["#0095da", "#00a651", "#ed1c24", "#ffde00"];
+	// const randColor = colors[Math.floor(Math.random() * colors.length)];
+	const embedColor = hexColors[colors.indexOf(finalColor)];
+
+	const bar = "-".repeat(40);
+	const embed = new MessageEmbed()
+		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\n\n${handLines.join("\n")}`)
+		.setColor(embedColor);
+	const msg = await chan.send("Game finished!", {
+		embed,
+		components: buttons.map(b => new MessageActionRow().addComponents(b)),
+	});
+	const startCollector = msg.createMessageComponentInteractionCollector(() => true, {
+		max: 1,
+	});
+	const inter = await new Promise((resolve) => {
+		startCollector.on("collect", resolve);
+	});
+	console.log(`Collected ${inter.customID}`);
+	const opts = {};
+	if (inter.customID === "QUICK") {
+		opts.solo = true;
+	}
+	if (inter.customID === "BOT") {
+		opts.bot = true;
+	}
+	// TODO: join button on new game
+	start(inter, chan, opts, reset, nextTurn, finished);
 }
 
 module.exports = {

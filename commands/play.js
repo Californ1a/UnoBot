@@ -44,7 +44,11 @@ async function play(interaction, chan, opts, bot) {
 	}
 	chan.uno.players.get(p.name).interaction = interaction;
 	const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
-	await interaction.reply(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.` : ""}`);
+	await interaction.reply(`Played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.` : ""}`, {
+		allowedMentions: {
+			users: [],
+		},
+	});
 	if (!chan.uno) return;
 	chan.uno.drawn = false;
 
