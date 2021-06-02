@@ -17,6 +17,7 @@ async function draw(interaction, chan) {
 	const name = (card.color) ? card.toString() : card.value.toString();
 	const n2 = (name.includes("WILD_DRAW")) ? "WD4" : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
 	await interaction.reply(`You drew a ${n2.toLowerCase()}`, { ephemeral: true });
+	// TODO: pass button
 }
 
 exports.run = draw;

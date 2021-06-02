@@ -1,15 +1,20 @@
-const { Collection } = require("discord.js");
+const { Collection, MessageButton } = require("discord.js");
 const { Game } = require("uno-engine");
+const { addButton, buttonsToMessageActions } = require("../util/buttons.js");
 const sleep = require("./sleep.js");
 const errHandler = require("../util/err.js");
 
-async function startMsg(i, msg) {
+async function startMsg(i, msg, options) {
 	let type = "reply";
-	if (i.type === "MESSAGE_COMPONENT") {
+	if (i.type === "MESSAGE_COMPONENT") { // TODO: check i.replied
 		await i.update(i.message.content, { components: [] });
 		type = "followUp";
 	}
-	i[type](msg);
+	const m = await i[type](msg, options);
+	if (m) {
+		return m;
+	}
+	return i.fetchReply();
 }
 
 async function start(interaction, chan, opts, reset, nextTurn, finished) {
@@ -55,8 +60,37 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 	const { id } = chan.uno;
 	if (!solo) {
 		const startTime = 30;
-		await startMsg(interaction, `An Uno game${(botPlayer) ? " *with the bot*" : ""} will be started in ${startTime}s! Use \`/join\` to join.`);
-		await sleep(startTime * 1000);
+		// TODO: join button on new game
+
+		const joinBtn = new MessageButton()
+			.setCustomID("JOIN")
+			.setLabel("Join")
+			.setStyle("SUCCESS")
+			.setEmoji("⏩");
+		const buttons = addButton([
+			[],
+		], joinBtn);
+
+		const msg = await startMsg(interaction, `An Uno game${(botPlayer) ? " *with the bot*" : ""} will be started in ${startTime}s! Use \`/join\` or click the button to join.`, {
+			components: buttonsToMessageActions(buttons),
+		});
+		const joinCollector = msg.createMessageComponentInteractionCollector(() => true, {
+			time: startTime * 1000,
+		});
+		joinCollector.on("collect", async (i) => {
+			if (chan.uno.players.has(i.member.id)) {
+				await i.reply("You are already in the current game.", { ephemeral: true });
+				return;
+			}
+			chan.uno.players.set(i.member.id, i.member);
+			chan.uno.players.get(i.member.id).interaction = i;
+			i.reply(`${i.member} joined - Player ${chan.uno.players.size}`, { allowedMentions: { users: [] } });
+		});
+		await new Promise((resolve) => { // Wait full duration before starting game
+			joinCollector.on("end", resolve);
+		});
+		msg.edit(msg.content, { components: [] });
+		// await sleep(startTime * 1000);
 	} else {
 		await startMsg(interaction, "Uno is starting!");
 	}

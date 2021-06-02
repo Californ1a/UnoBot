@@ -27,8 +27,15 @@ async function botPlay(chan, matchingHand, callUno = true) {
 			const cardColors = [];
 			const handWithoutWilds = player.hand.filter(c => !c.value.toString().includes("WILD"));
 			handWithoutWilds.forEach((c) => {
-				cardColors.push(c.color.toString()); // Create list of colors in hand
+				if (c.color.toString() !== chan.uno.game.discardedCard.color.toString()) {
+					// Create list of colors in hand not matching current color
+					cardColors.push(c.color.toString());
+				}
 			});
+			if (cardColors.length === 0) {
+				// All cards in hand had same color as the current card
+				cardColors.push(chan.uno.game.discardedCard.color.toString());
+			}
 			const cardCols = countOccurrences(cardColors);
 
 			const keys = Object.keys(cardCols);
