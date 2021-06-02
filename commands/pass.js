@@ -18,6 +18,8 @@ async function pass(interaction, chan) {
 			await interaction.reply("You must draw before passing.", { ephemeral: true });
 			return;
 		}
+		errHandler("error", e);
+		return;
 	}
 	chan.uno.players.get(player.name).interaction = interaction;
 	await interaction.reply("Passed");

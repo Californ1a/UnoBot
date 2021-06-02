@@ -6,7 +6,8 @@ const errHandler = require("../util/err.js");
 
 async function startMsg(i, msg, options) {
 	let type = "reply";
-	if (i.type === "MESSAGE_COMPONENT") { // TODO: check i.replied
+	// TODO: check i.replied
+	if (i.type === "MESSAGE_COMPONENT") {
 		await i.update(i.message.content, { components: [] });
 		type = "followUp";
 	}
@@ -60,7 +61,6 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 	const { id } = chan.uno;
 	if (!solo) {
 		const startTime = 30;
-		// TODO: join button on new game
 
 		const joinBtn = new MessageButton()
 			.setCustomID("JOIN")

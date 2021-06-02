@@ -6,38 +6,15 @@ const botTurn = require("./botBrain.js");
 const cardImages = require("../data/unocardimages.json");
 const sleep = require("./sleep.js");
 const start = require("./gameStart.js");
+const getPlainCard = require("./getPlainCard.js");
+const managePostDraw = require("./managePostDraw.js");
+const playedWildCard = require("./playedWild.js");
+const getHand = require("./getHand.js");
 
 function getCardImage(card) {
 	const value = card.value.toString();
 	const color = card.color.toString();
 	return cardImages[color][value];
-}
-
-function getPlainCard(card) {
-	const hand = [];
-	if (card.value.toString() === "WILD") {
-		hand.push("wild");
-	} else if (card.value.toString() === "WILD_DRAW_FOUR") {
-		hand.push("WD4");
-	} else if (card.value.toString() === "DRAW_TWO") {
-		hand.push(`${card.color.toString().toLowerCase()} DT`);
-	} else {
-		hand.push(card.toString().toLowerCase());
-	}
-	return hand[0];
-}
-
-function getHand(player) {
-	const handArr = player.hand;
-	const hand = [];
-	for (const card of handArr) {
-		hand.push(getPlainCard(card));
-	}
-	return {
-		handStr: hand.join(", "),
-		handArr: hand,
-		player,
-	};
 }
 
 function reset(chan) {
@@ -112,57 +89,6 @@ function createButtons(hand, discard) {
 	return buttonsToMessageActions(buttons);
 }
 
-async function playedWildCard(inter, chan, value, pid) {
-	const colors = ["Blue", "Green", "Red", "Yellow"];
-	const buttons = colors.reduce((a, c) => addButton(a, new MessageButton()
-		.setCustomID(c.toUpperCase())
-		.setLabel(c)
-		.setStyle(colorToButtonStyle(c.toUpperCase()))), [
-		[],
-	]);
-	console.log(inter.type);
-	await inter.update(inter.message.content, {
-		components: buttonsToMessageActions(buttons),
-	});
-	const colorCollector = inter.message.createMessageComponentInteractionCollector(() => true, {
-		max: 1,
-	});
-	const inter2 = await new Promise((resolve) => {
-		colorCollector.on("collect", resolve);
-	});
-	console.log(`Collected ${inter2.customID}`);
-	if (chan.uno.game.currentPlayer.name !== inter.user.id
-		|| chan.uno.playerCustomID !== pid) {
-		inter.update(inter.message.content, { components: [] });
-		inter.followUp("You can't use old buttons.", { ephemeral: true });
-		return false;
-	}
-
-	let card = Card(Values.get(value), Colors.get(inter2.customID));
-	const p = chan.uno.game.currentPlayer;
-	card = p.getCardByValue(Values.get(value));
-	card.color = Colors.get(Colors.get(inter2.customID));
-	const drawn = { didDraw: false };
-	chan.uno.game.play(card);
-
-	if (chan.uno.game.discardedCard.value.toString() === "WILD_DRAW_FOUR") {
-		drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
-		chan.uno.game.draw();
-		drawn.didDraw = true;
-	}
-
-	await inter2.update(card.toString(), { components: [] });
-	chan.uno.players.get(p.name).interaction = inter2;
-	await inter2.followUp(`${inter2.member} played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew 4 cards.` : ""}`, {
-		allowedMentions: {
-			users: [],
-		},
-	});
-	if (!chan.uno) return false;
-	chan.uno.drawn = false;
-	return true;
-}
-
 async function sendHandWithButtons(chan, player, handStr, rows) {
 	const handMsg = await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true, components: rows });
 	// console.log(handMsg);
@@ -193,89 +119,8 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 		}
 		chan.uno.game.draw();
 
-		const card = chan.uno.game.currentPlayer.hand[chan.uno.game.currentPlayer.hand.length - 1];
-		const name = (card.color) ? card.toString() : card.value.toString();
-		const n2 = (name.includes("WILD_DRAW")) ? "WD4" : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
-		colorToButtonStyle(name.split(" ")[0]);
-
-		const cardBtn = new MessageButton()
-			.setCustomID(card.toString())
-			.setLabel((n2.split(" ")[1] ? n2.split(" ")[1] : n2))
-			.setStyle(colorToButtonStyle(name.split(" ")[0]));
-
-		const match = (card.color === chan.uno.game.discardedCard.color
-			|| card.value === chan.uno.game.discardedCard.value
-			|| card.value.toString().includes("WILD"));
-		if (!match) {
-			cardBtn.setDisabled(true);
-		}
-
-		let buttons = addButton([
-			[],
-		], cardBtn);
-
-		const passBtn = new MessageButton()
-			.setCustomID("PASS")
-			.setLabel("Pass")
-			.setStyle("SECONDARY")
-			.setEmoji("⏭️");
-		buttons = addButton(buttons, passBtn);
-
-		await inter.update(`You drew a ${n2.toLowerCase()}`, {
-			ephemeral: true,
-			components: buttonsToMessageActions(buttons),
-		});
-		await chan.send(`${inter.member} drew`, { allowedMentions: { users: [] } });
-
-		const passCollector = inter.message.createMessageComponentInteractionCollector(() => true, {
-			max: 1,
-		});
-		const inter2 = await new Promise((resolve) => {
-			passCollector.on("collect", resolve);
-		});
-		console.log(`Collected ${inter2.customID}`);
-		if (chan.uno.game.currentPlayer.name !== inter2.member.id) {
-			await inter2.update(inter2.message.content, { components: [] });
-			await inter2.followUp("It's not your turn.", { ephemeral: true });
-			return false;
-		}
-		if (chan.uno.playerCustomID !== pid) {
-			inter2.update(inter.message.content, { components: [] });
-			inter2.followUp("You can't use old Uno buttons.", { ephemeral: true });
-			return false;
-		}
-		if (inter2.customID === "PASS") {
-			chan.uno.game.pass();
-			await inter2.update("Passed", { components: [] });
-			await chan.send(`${inter2.member} passed`, { allowedMentions: { users: [] } });
-			chan.uno.drawn = false;
-			return true;
-		}
-		if (inter2.customID.includes("NO_COLOR")) {
-			const ret = await playedWildCard(inter2, chan, card.value.toString(), pid);
-			return ret;
-		}
-
-		await inter2.update(inter.customID, { components: [] });
-		const drawn = { didDraw: false };
-		chan.uno.game.play(card);
-		if (!chan.uno) return false;
-		if (chan.uno.game.discardedCard.value.toString() === "DRAW_TWO") {
-			drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
-			chan.uno.game.draw();
-			drawn.didDraw = true;
-		}
-		player.interaction = inter2;
-		const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
-		await inter2.followUp(`${inter2.member} played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.` : ""}`, {
-			allowedMentions: {
-				users: [],
-			},
-			ephemeral: false,
-		});
-		if (!chan.uno) return false;
-		chan.uno.drawn = false;
-		return true;
+		const postDraw = await managePostDraw(chan, inter, player, pid);
+		return postDraw;
 	}
 	if (cardArr[0] === "NO_COLOR") {
 		const ret = await playedWildCard(inter, chan, cardArr[1], pid);

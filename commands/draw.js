@@ -1,3 +1,7 @@
+const managePostDraw = require("../game/managePostDraw.js");
+const { nextTurn } = require("../game/game.js");
+const getHand = require("../game/getHand.js");
+
 async function draw(interaction, chan) {
 	if (!chan.uno?.running) {
 		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
@@ -11,13 +15,15 @@ async function draw(interaction, chan) {
 		await interaction.reply("You cannot draw twice in a row.", { ephemeral: true });
 		return;
 	}
+	const player = chan.uno.players.get(interaction.member.id);
+	const { handStr } = getHand(chan.uno.game.getPlayer(player.id));
+	const pid = `${player.id}+${handStr}`;
 	chan.uno.drawn = true;
 	chan.uno.game.draw();
-	const card = chan.uno.game.currentPlayer.hand[chan.uno.game.currentPlayer.hand.length - 1];
-	const name = (card.color) ? card.toString() : card.value.toString();
-	const n2 = (name.includes("WILD_DRAW")) ? "WD4" : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
-	await interaction.reply(`You drew a ${n2.toLowerCase()}`, { ephemeral: true });
-	// TODO: pass button
+	const next = await managePostDraw(chan, interaction, player, pid);
+	if (next) {
+		nextTurn(chan);
+	}
 }
 
 exports.run = draw;
