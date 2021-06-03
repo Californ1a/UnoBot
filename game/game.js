@@ -1,5 +1,7 @@
 const { MessageButton, MessageEmbed } = require("discord.js");
 const { Card, Values, Colors } = require("uno-engine");
+const fs = require("fs/promises");
+const path = require("path");
 const { addButton, colorToButtonStyle, buttonsToMessageActions } = require("../util/buttons.js");
 const errHandler = require("../util/err.js");
 const botTurn = require("./botBrain.js");
@@ -90,6 +92,7 @@ function createButtons(hand, discard) {
 }
 
 async function sendHandWithButtons(chan, player, handStr, rows) {
+	if (!chan.uno) return false;
 	const handMsg = await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true, components: rows });
 	// console.log(handMsg);
 	const collector = handMsg.createMessageComponentInteractionCollector(() => true, {
@@ -212,6 +215,7 @@ async function nextTurn(chan) {
 }
 
 async function finished(chan, err, winner, score) {
+	// chan.uno.end = true;
 	if (err) {
 		errHandler("error", err);
 	}
@@ -220,13 +224,44 @@ async function finished(chan, err, winner, score) {
 	const losers = chan.uno.players.filter(p => p.id !== winner.name);
 	const hands = losers.map(p => getHand(chan.uno.game.getPlayer(p.id)));
 
+	const file = path.join(__dirname, "../scores.json");
+	try {
+		await fs.access(file);
+	} catch (e) {
+		console.error(e);
+		await fs.writeFile(file, JSON.stringify({}, null, 2));
+	}
+	const users = await fs.readFile(file);
+	const userScores = JSON.parse(users);
+	if (!userScores[player.id]) {
+		userScores[player.id] = {
+			wins: 1,
+			loses: 0,
+			score,
+		};
+	} else {
+		userScores[player.id].wins += 1;
+		userScores[player.id].score += score;
+	}
+
 	const handLines = [];
 	for (const hand of hands) {
-		handLines.push(`${chan.uno.players.get(hand.player.name)}'s final hand (${hand.handArr.length}): ${hand.handStr}`);
+		const p = chan.uno.players.get(hand.player.name);
+		handLines.push(`${p}'s final hand (${hand.handArr.length}): ${hand.handStr}`);
+		if (!userScores[p.id]) {
+			userScores[p.id] = {
+				wins: 0,
+				loses: 1,
+				score: 0,
+			};
+		} else {
+			userScores[p.id].loses += 1;
+		}
 	}
 	handLines.sort((a, b) => a.split(",").length - b.split(",").length);
 
 	const finalColor = chan.uno.game.discardedCard.color.toString();
+	await sleep(1000);
 	reset(chan);
 
 	const startBtn = new MessageButton()
@@ -252,22 +287,22 @@ async function finished(chan, err, winner, score) {
 		.setEmoji("🤖");
 	buttons = addButton(buttons, botStartBtn);
 
-	await sleep(1000);
-
 	const colors = ["BLUE", "GREEN", "RED", "YELLOW"];
 
 	const hexColors = ["#0095da", "#00a651", "#ed1c24", "#ffde00"];
 	// const randColor = colors[Math.floor(Math.random() * colors.length)];
 	const embedColor = hexColors[colors.indexOf(finalColor)];
 
+	const winScore = userScores[player.id];
 	const bar = "-".repeat(40);
 	const embed = new MessageEmbed()
-		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\n\n${handLines.join("\n")}`)
+		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\nWins: ${winScore.wins}/${winScore.wins + winScore.loses} - Total score: ${winScore.score}\n\n${handLines.join("\n")}`)
 		.setColor(embedColor);
 	const msg = await chan.send("Game finished!", {
 		embed,
 		components: buttonsToMessageActions(buttons),
 	});
+	await fs.writeFile(file, JSON.stringify(userScores, null, 2));
 	const startCollector = msg.createMessageComponentInteractionCollector(() => true, {
 		max: 1,
 	});

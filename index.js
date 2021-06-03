@@ -84,11 +84,11 @@ bot.on("ready", async () => {
 	bot.guilds.cache.forEach((guild) => {
 		guild.channels.cache.forEach(async (channel) => {
 			if (!(channel.type === "text" && channel.viewable && channel.isText())) return;
-			console.log(`Checking channel ${channel.name} in guild ${guild.name}...`);
+			console.log(colors.grey(`Checking channel ${channel.name} in guild ${guild.name}...`));
 			const msgs = await channel.messages.fetch({ limit: 15 });
 			msgs.forEach((message) => {
 				if (!message.components?.[0]) return;
-				console.log(`Found remaining buttons on message ${message.id}`);
+				console.log(`Found remaining buttons on message ${message.id} in channel ${channel.name} on guild ${guild.name}.`);
 				listenToButtonsOnOldMsg(message);
 			});
 		});
