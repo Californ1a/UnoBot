@@ -18,7 +18,7 @@ async function botPlay(chan, matchingHand, callUno = true) {
 		chan.startTyping();
 	}
 
-	// TODO: Improve logic on which card to pick
+	// TODO: #1 Improve logic on which card to pick
 	const card = matchingHand[0];
 
 	if (card.value.toString().includes("WILD")) {
