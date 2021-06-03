@@ -35,7 +35,15 @@ async function playedWild(inter, chan, value, pid) {
 	card.color = Colors.get(Colors.get(inter2.customID));
 	const drawn = { didDraw: false };
 	chan.uno.game.play(card);
-
+	if (!chan.uno) {
+		await inter2.update(inter2.message.content, { components: [] });
+		await inter2.followUp(`${inter2.member} played ${getPlainCard(card)}`, {
+			allowedMentions: {
+				users: [],
+			},
+		});
+		return false;
+	}
 	if (chan.uno.game.discardedCard.value.toString() === "WILD_DRAW_FOUR") {
 		drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
 		chan.uno.game.draw();

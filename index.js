@@ -3,6 +3,8 @@ const colors = require("colors");
 const { getOpts, getTimestamp } = require("./util/util.js");
 const errHandler = require("./util/err.js");
 const commands = require("./util/loadCommands.js");
+const { reset, nextTurn, finished } = require("./game/game.js");
+const start = require("./game/gameStart.js");
 
 const bot = new Client({ intents: ["GUILDS", "GUILD_MEMBERS", "GUILD_EMOJIS", "GUILD_WEBHOOKS", "GUILD_MESSAGES"] });
 console.log(colors.red("Starting"));
@@ -23,6 +25,7 @@ bot.on("message", async (msg) => {
 
 bot.on("interaction", async (interaction) => {
 	if (!interaction.isCommand()) {
+		if (!interaction.isMessageComponent() && interaction.componentType !== "BUTTON") return;
 		return;
 	}
 	let opts = {};
@@ -43,9 +46,53 @@ bot.on("interaction", async (interaction) => {
 	}
 });
 
+async function listenToButtonsOnOldMsg(msg) {
+	const startCollector = msg.createMessageComponentInteractionCollector(() => true, {
+		max: 1,
+	});
+	const interaction = await new Promise((resolve) => {
+		startCollector.on("collect", resolve);
+	});
+	console.log(`Collected ${interaction.customID}`);
+	if (interaction.replied) return;
+	// TODO: Make it work for mid-game buttons if bot restarts during a game
+	if (!interaction.customID.match(/^(start|quick|bot)$/i)) {
+		await interaction.update(interaction.message.content, { components: [] });
+		await interaction.followUp("You can't use old Uno buttons", { ephemeral: true });
+		return;
+	}
+	const opts = {};
+	if (interaction.customID === "QUICK") {
+		opts.solo = true;
+	}
+	if (interaction.customID === "BOT") {
+		opts.bot = true;
+	}
+
+	if (interaction.channel.uno?.running) {
+		await interaction.update(interaction.message.content, { components: [] });
+		await interaction.followUp("Uno is already running.", { ephemeral: true });
+		return;
+	}
+
+	start(interaction, interaction.channel, opts, reset, nextTurn, finished);
+}
+
 // Bot login+info
-bot.on("ready", () => {
+bot.on("ready", async () => {
 	console.log("Ready!");
+	bot.guilds.cache.forEach((guild) => {
+		guild.channels.cache.forEach(async (channel) => {
+			if (!(channel.type === "text" && channel.viewable && channel.isText())) return;
+			console.log(`Checking channel ${channel.name} in guild ${guild.name}...`);
+			const msgs = await channel.messages.fetch({ limit: 15 });
+			msgs.forEach((message) => {
+				if (!message.components?.[0]) return;
+				console.log(`Found remaining buttons on message ${message.id}`);
+				listenToButtonsOnOldMsg(message);
+			});
+		});
+	});
 });
 bot.on("error", (...args) => {
 	errHandler("error", ...args);

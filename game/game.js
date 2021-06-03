@@ -131,7 +131,14 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 	const drawn = { didDraw: false };
 	const card = Card(Values.get(cardArr[1]), Colors.get(cardArr[0]));
 	chan.uno.game.play(card);
-	if (!chan.uno) return false;
+	if (!chan.uno) {
+		await inter.followUp(`${inter.member} played ${getPlainCard(card)}`, {
+			allowedMentions: {
+				users: [],
+			},
+		});
+		return false;
+	}
 	if (chan.uno.game.discardedCard.value.toString() === "DRAW_TWO") {
 		drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
 		chan.uno.game.draw();
@@ -143,7 +150,6 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 		allowedMentions: {
 			users: [],
 		},
-		ephemeral: false,
 	});
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
@@ -290,5 +296,4 @@ module.exports = {
 	reset,
 	getHand,
 	getPlainCard,
-	getCardImage,
 };
