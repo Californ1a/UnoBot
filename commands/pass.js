@@ -1,15 +1,9 @@
 const errHandler = require("../util/err.js");
-const { nextTurn } = require("../game/game.js");
+const { nextTurn, checkUnoRunning, checkPlayerTurn } = require("../game/game.js");
 
 async function pass(interaction, chan) {
-	if (!chan.uno?.running) {
-		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
-		return;
-	}
-	if (chan.uno.game.currentPlayer.name !== interaction.member.id) {
-		await interaction.reply("It's not your turn.", { ephemeral: true });
-		return;
-	}
+	if (await checkUnoRunning(interaction)) return;
+	if (await checkPlayerTurn(interaction)) return;
 	const player = chan.uno.game.currentPlayer;
 	try {
 		chan.uno.game.pass();

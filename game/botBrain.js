@@ -1,6 +1,7 @@
 const { Colors } = require("uno-engine");
 const sleep = require("./sleep.js");
 const countOccurrences = require("../util/countOccurrences.js");
+const { filterHand } = require("./filterHand.js");
 
 const unoBotThink = ["*evil grin*..", "You'll pay for that...", "woooot..", "Dum de dum..", "hehe..", "Oh boy..", "hrm..", "Lets see here..", "uh..", "Hmm, you're good..", "Decisions decisions..", "Ahah!...", "Eeny Meeny Miney Moe..", "LOL..", "Oh dear..", "Errr..", "Ah me brain!..."];
 
@@ -10,7 +11,7 @@ async function botPlay(chan, matchingHand, callUno = true) {
 	const player = chan.uno.game.currentPlayer;
 	chan.startTyping();
 	await sleep(1500, 2500);
-	if (Math.floor(Math.random() * unoBotThink.length) < Math.floor(unoBotThink.length / 3)) {
+	if (Math.floor(Math.random() * unoBotThink.length) < Math.floor(unoBotThink.length / 3.5)) {
 		if (!chan.uno || id !== chan.uno.id) return;
 		chan.stopTyping();
 		await chan.send(unoBotThink[Math.floor(Math.random() * unoBotThink.length)]);
@@ -95,9 +96,7 @@ async function botTurn(chan) {
 	const { id } = chan.uno;
 	const player = chan.uno.game.currentPlayer;
 	if (player.name !== chan.guild.me.id) return;
-	let matchingHand = player.hand.filter(card => (card.color === chan.uno.game.discardedCard.color
-		|| card.value === chan.uno.game.discardedCard.value
-		|| card.value.toString().includes("WILD")));
+	let matchingHand = filterHand(player.hand, chan.uno.game.discardedCard);
 	await sleep(2000, 4000);
 	if (matchingHand.length === 0) {
 		chan.startTyping();
@@ -106,9 +105,7 @@ async function botTurn(chan) {
 		if (!chan.uno || id !== chan.uno.id) return;
 		await chan.send("`/draw`");
 		chan.uno.game.draw();
-		matchingHand = player.hand.filter(card => (card.color === chan.uno.game.discardedCard.color
-			|| card.value === chan.uno.game.discardedCard.value
-			|| card.value.toString().includes("WILD")));
+		matchingHand = filterHand(player.hand, chan.uno.game.discardedCard);
 		if (matchingHand.length === 0) {
 			await sleep(500, 1500);
 			chan.startTyping();

@@ -12,6 +12,8 @@ const getPlainCard = require("./getPlainCard.js");
 const managePostDraw = require("./managePostDraw.js");
 const playedWildCard = require("./playedWild.js");
 const getHand = require("./getHand.js");
+const { matchCard } = require("./filterHand.js");
+const botMad = require("./botMad.js");
 
 function getCardImage(card) {
 	const value = card.value.toString();
@@ -21,6 +23,22 @@ function getCardImage(card) {
 
 function reset(chan) {
 	chan.uno = null;
+}
+
+async function checkUnoRunning(interaction) {
+	if (!interaction.channel.uno?.running) {
+		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
+		return true;
+	}
+	return false;
+}
+
+async function checkPlayerTurn(interaction) {
+	if (interaction.channel.uno.game.currentPlayer.name !== interaction.member.id) {
+		await interaction.reply("It's not your turn.", { ephemeral: true });
+		return true;
+	}
+	return false;
 }
 
 function createButtons(hand, discard) {
@@ -33,6 +51,8 @@ function createButtons(hand, discard) {
 		const style = colorToButtonStyle(color);
 		const val = card.value.toString();
 		const value = (val === "DRAW_TWO") ? "DT" : (val === "WILD_DRAW_FOUR") ? "WD4" : val;
+		// NOTE Future select menus:
+		// * https://deploy-preview-674--discordjs-guide.netlify.app/interactions/select-menus.html#building-and-sending-select-menus
 		// let button;
 		// if (value === "WD4" || value === "WILD") {
 		// 	button = new MessageSelectMenu()
@@ -60,11 +80,7 @@ function createButtons(hand, discard) {
 			.setCustomID(card.toString())
 			.setLabel(value)
 			.setStyle(style);
-		// }
-		const match = (card.color === discard.color
-			|| card.value === discard.value
-			|| card.value.toString().includes("WILD"));
-		if (!match) {
+		if (!matchCard(card, discard)) {
 			button.setDisabled(true);
 		}
 		buttons[i].push(button);
@@ -82,19 +98,14 @@ function createButtons(hand, discard) {
 		.setStyle("SECONDARY")
 		.setEmoji("🎲");
 	buttons = addButton(buttons, drawButton);
-	// const passButton = new MessageButton()
-	// 	.setCustomID("pass")
-	// 	.setLabel("Pass")
-	// 	.setStyle("SECONDARY")
-	// 	.setEmoji("⏭️");
-	// buttons = addButton(buttons, passButton);
+
 	return buttonsToMessageActions(buttons);
 }
 
 async function sendHandWithButtons(chan, player, handStr, rows) {
-	if (!chan.uno) return false;
+	if (!chan.uno || chan.uno.end) return false;
 	const handMsg = await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true, components: rows });
-	// console.log(handMsg);
+
 	const collector = handMsg.createMessageComponentInteractionCollector(() => true, {
 		max: 1,
 	});
@@ -102,11 +113,9 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 	const inter = await new Promise((resolve) => {
 		collector.on("collect", resolve);
 	});
-	// await i.deferUpdate();
-	// console.log(i);
 
 	console.log(`Collected ${inter.customID}`);
-	if (chan.uno.game.currentPlayer.name !== inter.user.id
+	if (!chan.uno || chan.uno.game.currentPlayer.name !== inter.user.id
 		|| chan.uno.playerCustomID !== pid) {
 		inter.update(inter.message.content, { components: [] });
 		inter.followUp("You can't use old Uno buttons.", { ephemeral: true });
@@ -156,15 +165,9 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 	});
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
+
+	await botMad(chan);
 	return true;
-	// });
-	// collector.on("end", (collected) => {
-	// 	if (collected.size === 0) {
-	// 		resolve(false);
-	// 	}
-	// });
-	// });
-	// return playedCard;
 }
 
 async function nextTurn(chan) {
@@ -187,7 +190,7 @@ async function nextTurn(chan) {
 			if (rows) {
 				const clickedButton = await sendHandWithButtons(chan, player, handStr, rows);
 				if (clickedButton) {
-					nextTurn(chan);
+					await nextTurn(chan);
 					return;
 				}
 			} else {
@@ -207,15 +210,10 @@ async function nextTurn(chan) {
 			errHandler("error", e);
 		}
 	}
-
-	// chan.uno.players.forEach((pla) => {
-	// 	const p = chan.uno.game.getPlayer(pla.id);
-	// 	console.log(`${pla.id} - ${getHand(p).handArr.length} - ${getHand(p).handStr}`);
-	// });
 }
 
 async function finished(chan, err, winner, score) {
-	// chan.uno.end = true;
+	chan.uno.end = true;
 	if (err) {
 		errHandler("error", err);
 	}
@@ -228,7 +226,7 @@ async function finished(chan, err, winner, score) {
 	try {
 		await fs.access(file);
 	} catch (e) {
-		console.error(e);
+		errHandler("error", e);
 		await fs.writeFile(file, JSON.stringify({}, null, 2));
 	}
 	const users = await fs.readFile(file);
@@ -331,4 +329,6 @@ module.exports = {
 	reset,
 	getHand,
 	getPlainCard,
+	checkUnoRunning,
+	checkPlayerTurn,
 };

@@ -1,10 +1,7 @@
-const { getHand } = require("../game/game.js");
+const { getHand, checkUnoRunning } = require("../game/game.js");
 
 async function hand(interaction, chan) {
-	if (!chan.uno?.running) {
-		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
-		return;
-	}
+	if (await checkUnoRunning(interaction)) return;
 	const user = interaction.options[0]?.user;
 	if (user) {
 		const player = chan.uno.game.getPlayer(user.id);

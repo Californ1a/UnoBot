@@ -1,18 +1,11 @@
 const { Values, Colors, Card } = require("uno-engine");
 const errHandler = require("../util/err.js");
-const { getPlainCard, nextTurn } = require("../game/game.js");
+const { getPlainCard, nextTurn, checkUnoRunning, checkPlayerTurn } = require("../game/game.js");
+const botMad = require("../game/botMad.js");
 
-const unoBotMad = ["ARRGH!", "This is getting annoying!", "RATS!", "*sigh*", "You're getting on my nerves >:/", "dfasdfjhweuryaeuwysadjkf", "I'm steamed.", "BAH"];
-
-async function play(interaction, chan, opts, bot) {
-	if (!chan.uno?.running) {
-		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
-		return;
-	}
-	if (chan.uno.game.currentPlayer.name !== interaction.member.id) {
-		await interaction.reply("It's not your turn.", { ephemeral: true });
-		return;
-	}
+async function play(interaction, chan, opts) {
+	if (await checkUnoRunning(interaction)) return;
+	if (await checkPlayerTurn(interaction)) return;
 
 	let card = Card(Values.get(opts.value), Colors.get(opts.color));
 	const p = chan.uno.game.currentPlayer;
@@ -39,7 +32,7 @@ async function play(interaction, chan, opts, bot) {
 			await interaction.reply("That card can't be played now.", { ephemeral: true });
 			return;
 		}
-		console.error(e);
+		errHandler("error", e);
 		return;
 	}
 	chan.uno.players.get(p.name).interaction = interaction;
@@ -52,19 +45,7 @@ async function play(interaction, chan, opts, bot) {
 	if (!chan.uno) return;
 	chan.uno.drawn = false;
 
-	// Let bot get mad if he has to draw cards or gets skipped
-	if (chan.uno.game.currentPlayer.name === chan.guild.me.id && chan.uno.players.size === 2) {
-		const betweenLength = Math.floor(Math.random() * unoBotMad.length);
-		let rand = betweenLength > Math.floor(unoBotMad.length / 2);
-		const value = chan.uno.game.discardedCard.value.toString();
-		if (value.includes("DRAW")) { // Increase chance for bot to get mad for draw cards
-			rand = betweenLength > Math.floor(unoBotMad.length / 3);
-		}
-		if (rand !== 0 && chan.uno.game.getPlayer(bot.user.id)
-			&& (value.includes("DRAW") || value.includes("SKIP") || value.includes("REVERSE"))) {
-			await chan.send(unoBotMad[Math.floor(Math.random() * unoBotMad.length)]);
-		}
-	}
+	await botMad(chan);
 
 	try {
 		await nextTurn(chan);

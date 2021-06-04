@@ -1,8 +1,7 @@
+const { checkUnoRunning } = require("../game/game.js");
+
 async function join(interaction, chan) {
-	if (!chan.uno?.running) {
-		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
-		return;
-	}
+	if (await checkUnoRunning(interaction)) return;
 	if (chan.uno.players.has(interaction.member.id)) {
 		await interaction.reply("You are already in the current game.", { ephemeral: true });
 		return;

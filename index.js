@@ -55,7 +55,12 @@ async function listenToButtonsOnOldMsg(msg) {
 	});
 	console.log(`Collected ${interaction.customID}`);
 	if (interaction.replied) return;
-	// TODO: Make it work for mid-game buttons if bot restarts during a game
+	/**
+	 * TODO: Make it work for mid-game buttons if bot restarts during a game
+	 * Is this even possible considering the buttons are attached to an ephemeral msg?
+	 * Ephemeral msg's can't be fetched if they aren't already cached
+	 * so the bot won't see them on startup.
+	 */
 	if (!interaction.customID.match(/^(start|quick|bot)$/i)) {
 		await interaction.update(interaction.message.content, { components: [] });
 		await interaction.followUp("You can't use old Uno buttons", { ephemeral: true });
