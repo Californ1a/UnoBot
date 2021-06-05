@@ -20,7 +20,7 @@ async function playedWild(inter, chan, value, pid) {
 	const colorCollector = inter.message.createMessageComponentInteractionCollector(() => true, {
 		max: 1,
 	});
-	chan.uno.playerSelectingColor = true;
+	chan.uno.selectingColor = true;
 	const inter2 = await new Promise((resolve) => {
 		colorCollector.on("collect", resolve);
 	});
@@ -31,7 +31,7 @@ async function playedWild(inter, chan, value, pid) {
 	card = p.getCardByValue(Values.get(value));
 
 	if (!card || !chan.uno.selectingColor
-		|| chan.uno.game.currentPlayer.name !== inter.user.id
+		|| chan.uno.game.currentPlayer.name !== inter2.user.id
 		|| chan.uno.playerCustomID !== pid) {
 		if (!inter2.replied) {
 			await inter2.update(inter.message.content, { components: [] });
