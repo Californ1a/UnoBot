@@ -38,7 +38,6 @@ async function managePostDraw(chan, interaction, player, pid) {
 		ephemeral: true,
 		components: buttonsToMessageActions(buttons),
 	};
-	// console.log(interaction.type);
 	let msg;
 	if (interaction.type === "APPLICATION_COMMAND") {
 		await interaction.reply("Drew", { allowedMentions: { users: [] } });
@@ -54,7 +53,6 @@ async function managePostDraw(chan, interaction, player, pid) {
 	});
 	const passCollector = createCollector(msg || interaction.message);
 
-	// console.log(passCollector);
 	const inter2 = await new Promise((resolve) => {
 		passCollector.on("collect", resolve);
 	});

@@ -146,7 +146,6 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 		const ret = await playedWildCard(inter, chan, cardArr[1], pid);
 		return ret;
 	}
-	console.log("inter.customID", inter.customID);
 	const card = Card(Values.get(cardArr[1]), Colors.get(cardArr[0]));
 
 	const ret = await postPlay(chan, inter, card);

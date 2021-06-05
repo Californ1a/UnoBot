@@ -18,23 +18,16 @@ async function postPlay(chan, interaction, card) {
 		const playedStr = `${interaction?.member} played ${getPlainCard(card)}`;
 		if (!chan.uno && interaction) {
 			if (interaction.type === "MESSAGE_COMPONENT") {
-				console.log("AAA");
 				await interaction.update(interaction.message.content, { components: [] });
 				await interaction.followUp(playedStr, noMention);
 			} else {
-				console.log("BBB");
 				await interaction.reply(playedStr, noMention);
 			}
 			return false;
 		}
 		if (interaction?.type === "MESSAGE_COMPONENT") {
-			console.log("CCC");
 			await interaction.update(card.toString(), { components: [] });
 		}
-		// else if (interaction?.type === "APPLICATION_COMMAND") {
-		// 	console.log("DDD");
-		// 	await interaction.reply(playedStr, noMention);
-		// }
 		if (!chan.uno) return false;
 
 		if (playingPlayer.hand.length !== 0
@@ -71,20 +64,15 @@ async function postPlay(chan, interaction, card) {
 
 	if (drawn.didDraw) {
 		if (!interaction) {
-			console.log("EEE");
 			await chan.send(drewStr, noMention);
 		} else if (interaction.type === "MESSAGE_COMPONENT") {
-			console.log("FFF");
 			await interaction.followUp(`${played}${someoneDrew}`, noMention);
 		} else {
-			console.log("GGG");
 			await interaction.reply(`${played}${someoneDrew}`, noMention);
 		}
 	} else if (interaction?.type === "MESSAGE_COMPONENT") {
-		console.log("HHH");
 		await interaction.followUp(played, noMention);
 	} else if (interaction?.type === "APPLICATION_COMMAND") {
-		console.log("III");
 		await interaction.reply(played, noMention);
 	}
 	if (playingPlayer.name !== chan.guild.me.id) {

@@ -13,7 +13,6 @@ async function playedWild(inter, chan, value, pid) {
 		.setStyle(colorToButtonStyle(c.toUpperCase()))), [
 		[],
 	]);
-	console.log(inter.type);
 	const { handStr } = getHand(chan.uno.game.currentPlayer);
 	await inter.update(`Your Uno hand: ${handStr.split(", ").slice(0, -1).join(", ")}`, {
 		components: buttonsToMessageActions(buttons),
