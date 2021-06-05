@@ -110,12 +110,12 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 		if (!chan.uno || id !== chan.uno.id) return;
 	}
 	chan.uno.game = new Game(players);
+	chan.uno.game.on("end", (...args) => finished(chan, ...args));
 	try {
 		await nextTurn(chan);
 	} catch (e) {
 		errHandler("error", e);
 	}
-	chan.uno.game.on("end", (...args) => finished(chan, ...args));
 }
 
 module.exports = start;

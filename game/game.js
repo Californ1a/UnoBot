@@ -14,6 +14,14 @@ const playedWildCard = require("./playedWild.js");
 const getHand = require("./getHand.js");
 const { matchCard } = require("./filterHand.js");
 const botMad = require("./botMad.js");
+const postPlay = require("./postPlay.js");
+
+function gcd(a, b) {
+	if (b === 0) {
+		return a;
+	}
+	return gcd(b, a % b);
+}
 
 function getCardImage(card) {
 	const value = card.value.toString();
@@ -139,30 +147,11 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 		return ret;
 	}
 	console.log("inter.customID", inter.customID);
-	await inter.update(inter.customID, { components: [] });
-	const drawn = { didDraw: false };
 	const card = Card(Values.get(cardArr[1]), Colors.get(cardArr[0]));
-	chan.uno.game.play(card);
-	if (!chan.uno) {
-		await inter.followUp(`${inter.member} played ${getPlainCard(card)}`, {
-			allowedMentions: {
-				users: [],
-			},
-		});
-		return false;
-	}
-	if (chan.uno.game.discardedCard.value.toString() === "DRAW_TWO") {
-		drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
-		chan.uno.game.draw();
-		drawn.didDraw = true;
-	}
-	player.interaction = inter;
-	console.log("getPlainCard(card)", getPlainCard(card));
-	await inter.followUp(`${inter.member} played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew 2 cards.` : ""}`, {
-		allowedMentions: {
-			users: [],
-		},
-	});
+
+	const ret = await postPlay(chan, inter, card);
+	if (!ret) return false;
+
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
 
@@ -194,10 +183,10 @@ async function nextTurn(chan) {
 					return;
 				}
 			} else {
-				await player.interaction.followUp(`Your Uno hand: ${handStr}\nToo many cards to create buttons - use \`/play\` command.`, { ephemeral: true });
+				await player.interaction.followUp(`Your Uno hand: ${handStr}\n\n**Too many cards to create buttons (max 25) - use \`/play\` command.**`, { ephemeral: true });
 			}
 		} catch (e) {
-			await chan.send(`An error occurred, ${player}, use slash comamnds.`);
+			await chan.send(`An unknown error occurred, ${player}, use slash comamnds.`);
 			errHandler("error", e);
 		}
 	}
@@ -293,8 +282,12 @@ async function finished(chan, err, winner, score) {
 
 	const winScore = userScores[player.id];
 	const bar = "-".repeat(40);
+	const { wins } = winScore;
+	const totalGames = wins + winScore.loses;
+	const winsGCD = gcd(wins, totalGames);
+	const winRatio = `${Math.floor(wins / winsGCD)}:${Math.floor(totalGames / winsGCD)}`;
 	const embed = new MessageEmbed()
-		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\nWins: ${winScore.wins}/${winScore.wins + winScore.loses} - Total score: ${winScore.score}\n\n${handLines.join("\n")}`)
+		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\nWins: ${wins}/${totalGames} (${winRatio}) - Total score: ${winScore.score}\n\n${handLines.join("\n")}`)
 		.setColor(embedColor);
 	const msg = await chan.send("Game finished!", {
 		embed,

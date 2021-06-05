@@ -1,7 +1,9 @@
 const { MessageButton } = require("discord.js");
 const { Card, Values, Colors } = require("uno-engine");
 const { addButton, colorToButtonStyle, buttonsToMessageActions } = require("../util/buttons.js");
-const getPlainCard = require("./getPlainCard.js");
+const postPlay = require("./postPlay.js");
+const botMad = require("./botMad.js");
+const getHand = require("./getHand.js");
 
 async function playedWild(inter, chan, value, pid) {
 	const colors = ["Blue", "Green", "Red", "Yellow"];
@@ -12,53 +14,40 @@ async function playedWild(inter, chan, value, pid) {
 		[],
 	]);
 	console.log(inter.type);
-	await inter.update(inter.message.content, {
+	const { handStr } = getHand(chan.uno.game.currentPlayer);
+	await inter.update(`Your Uno hand: ${handStr.split(", ").slice(0, -1).join(", ")}`, {
 		components: buttonsToMessageActions(buttons),
 	});
 	const colorCollector = inter.message.createMessageComponentInteractionCollector(() => true, {
 		max: 1,
 	});
+	chan.uno.playerSelectingColor = true;
 	const inter2 = await new Promise((resolve) => {
 		colorCollector.on("collect", resolve);
 	});
 	console.log(`Collected ${inter2.customID}`);
-	if (chan.uno.game.currentPlayer.name !== inter.user.id
-		|| chan.uno.playerCustomID !== pid) {
-		inter.update(inter.message.content, { components: [] });
-		inter.followUp("You can't use old buttons.", { ephemeral: true });
-		return false;
-	}
 
 	let card = Card(Values.get(value), Colors.get(inter2.customID));
 	const p = chan.uno.game.currentPlayer;
 	card = p.getCardByValue(Values.get(value));
-	card.color = Colors.get(Colors.get(inter2.customID));
-	const drawn = { didDraw: false };
-	chan.uno.game.play(card);
-	if (!chan.uno) {
-		await inter2.update(inter2.message.content, { components: [] });
-		await inter2.followUp(`${inter2.member} played ${getPlainCard(card)}`, {
-			allowedMentions: {
-				users: [],
-			},
-		});
+
+	if (!card || !chan.uno.selectingColor
+		|| chan.uno.game.currentPlayer.name !== inter.user.id
+		|| chan.uno.playerCustomID !== pid) {
+		if (!inter2.replied) {
+			await inter2.update(inter.message.content, { components: [] });
+		}
+		await inter2.followUp("You can't use old Uno buttons.", { ephemeral: true });
 		return false;
 	}
-	if (chan.uno.game.discardedCard.value.toString() === "WILD_DRAW_FOUR") {
-		drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
-		chan.uno.game.draw();
-		drawn.didDraw = true;
-	}
+	card.color = Colors.get(Colors.get(inter2.customID));
 
-	await inter2.update(card.toString(), { components: [] });
-	chan.uno.players.get(p.name).interaction = inter2;
-	await inter2.followUp(`${inter2.member} played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew 4 cards.` : ""}`, {
-		allowedMentions: {
-			users: [],
-		},
-	});
+	const ret = await postPlay(chan, inter2, card);
+	if (!ret) return false;
+
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
+	await botMad(chan);
 	return true;
 }
 

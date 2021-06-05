@@ -1,8 +1,9 @@
 const { MessageButton } = require("discord.js");
 const errHandler = require("../util/err.js");
 const { addButton, colorToButtonStyle, buttonsToMessageActions } = require("../util/buttons.js");
-const getPlainCard = require("./getPlainCard.js");
 const playedWildCard = require("./playedWild.js");
+const postPlay = require("./postPlay.js");
+const botMad = require("./botMad.js");
 
 async function managePostDraw(chan, interaction, player, pid) {
 	const card = chan.uno.game.currentPlayer.hand[chan.uno.game.currentPlayer.hand.length - 1];
@@ -40,7 +41,7 @@ async function managePostDraw(chan, interaction, player, pid) {
 	// console.log(interaction.type);
 	let msg;
 	if (interaction.type === "APPLICATION_COMMAND") {
-		await interaction.reply(`${interaction.member} drew`, { allowedMentions: { users: [] } });
+		await interaction.reply("Drew", { allowedMentions: { users: [] } });
 		msg = await interaction.followUp(interMsg, msgOpts);
 	} else if (interaction.type === "MESSAGE_COMPONENT") {
 		await interaction.update(interMsg, msgOpts);
@@ -91,25 +92,12 @@ async function managePostDraw(chan, interaction, player, pid) {
 		return ret;
 	}
 
-	await inter2.update(interaction.customID, { components: [] });
-	const drawn = { didDraw: false };
-	chan.uno.game.play(card);
-	if (!chan.uno) return false;
-	if (chan.uno.game.discardedCard.value.toString() === "DRAW_TWO") {
-		drawn.player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
-		chan.uno.game.draw();
-		drawn.didDraw = true;
-	}
-	player.interaction = inter2;
-	const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
-	await inter2.followUp(`${inter2.member} played ${getPlainCard(card)}${(drawn.didDraw) ? `, ${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.` : ""}`, {
-		allowedMentions: {
-			users: [],
-		},
-		ephemeral: false,
-	});
+	const ret = await postPlay(chan, inter2, card);
+	if (!ret) return false;
+
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
+	await botMad(chan);
 	return true;
 }
 

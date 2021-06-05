@@ -2,6 +2,7 @@ const { Colors } = require("uno-engine");
 const sleep = require("./sleep.js");
 const countOccurrences = require("../util/countOccurrences.js");
 const { filterHand } = require("./filterHand.js");
+const postPlay = require("./postPlay.js");
 
 const unoBotThink = ["*evil grin*..", "You'll pay for that...", "woooot..", "Dum de dum..", "hehe..", "Oh boy..", "hrm..", "Lets see here..", "uh..", "Hmm, you're good..", "Decisions decisions..", "Ahah!...", "Eeny Meeny Miney Moe..", "LOL..", "Oh dear..", "Errr..", "Ah me brain!..."];
 
@@ -73,21 +74,8 @@ async function botPlay(chan, matchingHand, callUno = true) {
 
 	if (!chan.uno || id !== chan.uno.id) return;
 	await chan.send(`\`/play ${commandColor} ${commandValue}\``);
-	chan.uno.game.play(card);
-	if (!chan.uno || id !== chan.uno.id) return;
-	const drawn = { didDraw: false, player: chan.uno.players.get(chan.uno.game.currentPlayer.name) };
-	if (player.hand.length !== 0 && (chan.uno.game.discardedCard.value.toString().match(/^(draw_two|wild_draw_four)$/i))) {
-		chan.uno.game.draw();
-		drawn.didDraw = true;
-	}
-	if (drawn.didDraw) {
-		const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
-		await chan.send(`${drawn.player} drew ${(c.includes("two") ? "2" : "4")} cards.`, {
-			allowedMentions: {
-				users: [],
-			},
-		});
-	}
+
+	await postPlay(chan, null, card);
 	await sleep(1000);
 }
 
