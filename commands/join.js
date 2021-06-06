@@ -13,8 +13,11 @@ async function join(interaction, chan) {
 	if (chan.uno.players.size === 10) {
 		await interaction.reply("The maximum number of players has already joined.", { ephemeral: true });
 	}
-	chan.uno.players.set(interaction.member.id, interaction.member);
-	chan.uno.players.get(interaction.member.id).interaction = interaction;
+	chan.uno.players.set(interaction.member.id, {
+		member: interaction.member,
+		interaction,
+	});
+	// chan.uno.players.get(interaction.member.id).interaction = interaction;
 	await interaction.reply(`Player ${chan.uno.players.size}`);
 }
 

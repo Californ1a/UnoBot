@@ -10,8 +10,8 @@ async function draw(interaction, chan) {
 		return;
 	}
 	const player = chan.uno.players.get(interaction.member.id);
-	const { handStr } = getHand(chan.uno.game.getPlayer(player.id));
-	const pid = `${player.id}+${handStr}`;
+	const { handStr } = getHand(chan.uno.game.getPlayer(player.member.id));
+	const pid = `${player.member.id}+${handStr}`;
 	chan.uno.drawn = true;
 	chan.uno.game.draw();
 	const next = await managePostDraw(chan, interaction, player, pid);

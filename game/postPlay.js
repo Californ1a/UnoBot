@@ -33,7 +33,7 @@ async function postPlay(chan, interaction, card) {
 		if (playingPlayer.hand.length !== 0
 			&& chan.uno.game.discardedCard.value.toString().match(/^(draw_two|wild_draw_four)$/i)) {
 			drawn.player = {
-				user: chan.uno.players.get(chan.uno.game.currentPlayer.name),
+				user: chan.uno.players.get(chan.uno.game.currentPlayer.name).member,
 				handCount: chan.uno.game.currentPlayer.hand.length,
 			};
 			chan.uno.game.draw();
@@ -52,8 +52,11 @@ async function postPlay(chan, interaction, card) {
 		await interaction.reply("An unknown error occurred.");
 		return false;
 	}
-	if (interaction) {
-		chan.uno.players.get(chan.uno.game.currentPlayer.name).interaction = interaction;
+	const p = chan.uno.players.get(playingPlayer.name);
+	if (interaction && p.interaction) {
+		if (interaction.channel.id === p.interaction.channelID) {
+			chan.uno.players.get(playingPlayer.name).interaction = interaction;
+		}
 	}
 	const c = chan.uno.game.discardedCard.value.toString().toLowerCase();
 

@@ -112,6 +112,7 @@ function createButtons(hand, discard) {
 
 async function sendHandWithButtons(chan, player, handStr, rows) {
 	if (!chan.uno || chan.uno.end) return false;
+	console.log(player.interaction.channelID, player.interaction.channel.name);
 	const handMsg = await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true, components: rows });
 
 	const collector = handMsg.createMessageComponentInteractionCollector(() => true, {
@@ -160,18 +161,24 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 async function nextTurn(chan) {
 	if (!chan.uno) return;
 	const player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
+	console.log(chan.uno.id,
+		player.member.id,
+		player.member.displayName,
+		chan.id,
+		player.interaction?.channelID,
+		player.interaction?.channel.id);
 
 	const { handArr, handStr } = getHand(chan.uno.game.currentPlayer);
 	if (handArr.length === 0) {
 		return; // game.on end triggers
 	}
-	const str = `${player} (${handArr.length}) is up - Card: ${chan.uno.game.discardedCard.toString()}`;
+	const str = `${player.member} (${handArr.length}) is up - Card: ${chan.uno.game.discardedCard.toString()}`;
 	const file = { files: [getCardImage(chan.uno.game.discardedCard)] };
 	await chan.send(str, file);
 	await botMad(chan);
-	chan.uno.playerCustomID = `${player.id}+${handStr}`;
+	chan.uno.playerCustomID = `${player.member.id}+${handStr}`;
 
-	if (player.id !== chan.guild.me.id) {
+	if (player.member.id !== chan.guild.me.id) {
 		try {
 			const rows = createButtons(chan.uno.game.currentPlayer.hand, chan.uno.game.discardedCard);
 			if (rows) {
@@ -189,7 +196,7 @@ async function nextTurn(chan) {
 		}
 	}
 
-	if (chan.uno && player.id === chan.guild.me.id) {
+	if (chan.uno && player.member.id === chan.guild.me.id) {
 		try {
 			await botTurn(chan);
 			await nextTurn(chan);
@@ -206,8 +213,8 @@ async function finished(chan, err, winner, score) {
 	}
 	const player = chan.uno.players.get(winner.name);
 
-	const losers = chan.uno.players.filter(p => p.id !== winner.name);
-	const hands = losers.map(p => getHand(chan.uno.game.getPlayer(p.id)));
+	const losers = chan.uno.players.filter(p => p.member.id !== winner.name);
+	const hands = losers.map(p => getHand(chan.uno.game.getPlayer(p.member.id)));
 
 	const file = path.join(__dirname, "../scores.json");
 	try {
@@ -218,21 +225,21 @@ async function finished(chan, err, winner, score) {
 	}
 	const users = await fs.readFile(file);
 	const userScores = JSON.parse(users);
-	if (!userScores[player.id]) {
-		userScores[player.id] = {
+	if (!userScores[player.member.id]) {
+		userScores[player.member.id] = {
 			wins: 1,
 			loses: 0,
 			score,
 		};
 	} else {
-		userScores[player.id].wins += 1;
-		userScores[player.id].score += score;
+		userScores[player.member.id].wins += 1;
+		userScores[player.member.id].score += score;
 	}
 
 	const handLines = [];
 	for (const hand of hands) {
 		const p = chan.uno.players.get(hand.player.name);
-		handLines.push(`${p}'s final hand (${hand.handArr.length}): ${hand.handStr}`);
+		handLines.push(`${p.member}'s final hand (${hand.handArr.length}): ${hand.handStr}`);
 		if (!userScores[p.id]) {
 			userScores[p.id] = {
 				wins: 0,
@@ -278,14 +285,14 @@ async function finished(chan, err, winner, score) {
 	// const randColor = colors[Math.floor(Math.random() * colors.length)];
 	const embedColor = hexColors[colors.indexOf(finalColor)];
 
-	const winScore = userScores[player.id];
+	const winScore = userScores[player.member.id];
 	const bar = "-".repeat(40);
 	const { wins } = winScore;
 	const totalGames = wins + winScore.loses;
 	const winsGCD = gcd(wins, totalGames);
 	const winRatio = `${Math.floor(wins / winsGCD)}:${Math.floor(totalGames / winsGCD)}`;
 	const embed = new MessageEmbed()
-		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\nWins: ${wins.toLocaleString()}/${totalGames.toLocaleString()} (${winRatio}) - Total score: ${winScore.score.toLocaleString()}\n\n${handLines.join("\n")}`)
+		.setDescription(`${bar}\n🥇 ${player.member} wins! Score: ${score}\n${bar}\nWins: ${wins.toLocaleString()}/${totalGames.toLocaleString()} (${winRatio}) - Total score: ${winScore.score.toLocaleString()}\n\n${handLines.join("\n")}`)
 		.setColor(embedColor);
 	const msg = await chan.send("Game finished!", {
 		embed,

@@ -53,10 +53,16 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 		players: new Collection(),
 		id: Date.now(),
 	};
-	chan.uno.players.set(interaction.member.id, interaction.member);
-	chan.uno.players.get(interaction.member.id).interaction = interaction;
+	console.log(chan.uno);
+	chan.uno.players.set(interaction.member.id, {
+		member: interaction.member,
+		interaction,
+	});
+	// chan.uno.players.get(interaction.member.id).interaction = interaction;
 	if (botPlayer) {
-		chan.uno.players.set(chan.guild.me.id, chan.guild.me);
+		chan.uno.players.set(chan.guild.me.id, {
+			member: chan.guild.me,
+		});
 	}
 	const { id } = chan.uno;
 	if (!solo) {
@@ -82,8 +88,11 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 				await i.reply("You are already in the current game.", { ephemeral: true });
 				return;
 			}
-			chan.uno.players.set(i.member.id, i.member);
-			chan.uno.players.get(i.member.id).interaction = i;
+			chan.uno.players.set(i.member.id, {
+				member: i.member,
+				interaction: i,
+			});
+			// chan.uno.players.get(i.member.id).interaction = i;
 			i.reply(`${i.member} joined - Player ${chan.uno.players.size}`, { allowedMentions: { users: [] } });
 		});
 		await new Promise((resolve) => { // Wait full duration before starting game
@@ -98,9 +107,11 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 	if (!chan.uno || id !== chan.uno.id) return;
 
 	chan.uno.awaitingPlayers = false;
-	const players = chan.uno.players.map(p => p.id);
+	const players = chan.uno.players.map(p => p.member.id);
 	if (players.length < 2) {
-		chan.uno.players.set(chan.guild.me.id, chan.guild.me);
+		chan.uno.players.set(chan.guild.me.id, {
+			member: chan.guild.me,
+		});
 		players.push(chan.guild.me.id);
 		if (!solo) {
 			await interaction.followUp("No one joined, the bot will play!");
@@ -112,6 +123,7 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 	}
 	chan.uno.game = new Game(players);
 	chan.uno.game.on("end", (...args) => finished(chan, ...args));
+
 	try {
 		await nextTurn(chan);
 	} catch (e) {
