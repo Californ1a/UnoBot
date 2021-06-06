@@ -30,8 +30,13 @@ bot.on("interaction", async (interaction) => {
 	}
 	let opts = {};
 	let optString = "";
-	if (interaction.options?.length > 0) {
+	if (interaction.options?.size > 0) {
 		opts = getOpts(interaction.options);
+		// NOTE without subcommands this works
+		// opts = interaction.options.reduce((acc, opt) => ({
+		// 	[opt.name]: opt.value,
+		// 	...acc,
+		// }), {});
 		if (Object.keys(opts).length > 0) {
 			optString = opts;
 		}
