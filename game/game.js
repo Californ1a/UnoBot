@@ -286,7 +286,7 @@ async function finished(chan, err, winner, score) {
 	const winsGCD = gcd(wins, totalGames);
 	const winRatio = `${Math.floor(wins / winsGCD)}:${Math.floor(totalGames / winsGCD)}`;
 	const embed = new MessageEmbed()
-		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\nWins: ${wins}/${totalGames} (${winRatio}) - Total score: ${winScore.score}\n\n${handLines.join("\n")}`)
+		.setDescription(`${bar}\n🥇 ${player} wins! Score: ${score}\n${bar}\nWins: ${wins.toLocaleString()}/${totalGames.toLocaleString()} (${winRatio}) - Total score: ${winScore.score.toLocaleString()}\n\n${handLines.join("\n")}`)
 		.setColor(embedColor);
 	const msg = await chan.send("Game finished!", {
 		embed,
