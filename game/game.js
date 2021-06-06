@@ -112,7 +112,6 @@ function createButtons(hand, discard) {
 
 async function sendHandWithButtons(chan, player, handStr, rows) {
 	if (!chan.uno || chan.uno.end) return false;
-	console.log(player.interaction.channelID, player.interaction.channel.name);
 	const handMsg = await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true, components: rows });
 
 	const collector = handMsg.createMessageComponentInteractionCollector(() => true, {
@@ -161,12 +160,6 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 async function nextTurn(chan) {
 	if (!chan.uno) return;
 	const player = chan.uno.players.get(chan.uno.game.currentPlayer.name);
-	console.log(chan.uno.id,
-		player.member.id,
-		player.member.displayName,
-		chan.id,
-		player.interaction?.channelID,
-		player.interaction?.channel.id);
 
 	const { handArr, handStr } = getHand(chan.uno.game.currentPlayer);
 	if (handArr.length === 0) {

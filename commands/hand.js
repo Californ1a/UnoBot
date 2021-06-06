@@ -18,7 +18,6 @@ async function hand(interaction, chan) {
 		return;
 	}
 	const { handStr } = getHand(player);
-	console.log(interaction.channel.id, interaction.channel.name);
 	await interaction.reply(`Your Uno hand: ${handStr}`, { ephemeral: true });
 }
 

@@ -43,7 +43,6 @@ bot.on("interaction", async (interaction) => {
 	}
 	const logStr = `[${getTimestamp(interaction.createdAt)}] ${interaction.user.username}: /${interaction.commandName}`;
 	console.log(logStr, optString);
-	// console.log(interaction);
 	const cmd = interaction.commandName;
 	if (Object.prototype.hasOwnProperty.call(commands.slash, cmd)) {
 		const chan = interaction.channel;

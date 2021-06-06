@@ -53,7 +53,6 @@ async function start(interaction, chan, opts, reset, nextTurn, finished) {
 		players: new Collection(),
 		id: Date.now(),
 	};
-	console.log(chan.uno);
 	chan.uno.players.set(interaction.member.id, {
 		member: interaction.member,
 		interaction,
