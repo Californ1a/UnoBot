@@ -7,7 +7,8 @@ const errHandler = require("../util/err.js");
 async function startMsg(i, msg, options) {
 	let type = "reply";
 	if (i.type === "MESSAGE_COMPONENT") {
-		await i.update(i.message.content, { components: [] });
+		const { embeds } = i.message;
+		await i.update(i.message.content, { components: [], embeds });
 		type = "followUp";
 	}
 	const m = await i[type](msg, options);
