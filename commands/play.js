@@ -1,7 +1,6 @@
 const { Values, Colors, Card } = require("uno-engine");
 const errHandler = require("../util/err.js");
 const { nextTurn, checkUnoRunning, checkPlayerTurn } = require("../game/game.js");
-const botMad = require("../game/botMad.js");
 const postPlay = require("../game/postPlay.js");
 
 async function play(interaction, chan, opts) {
@@ -20,8 +19,6 @@ async function play(interaction, chan, opts) {
 
 	if (!chan.uno) return;
 	chan.uno.drawn = false;
-
-	await botMad(chan);
 
 	try {
 		await nextTurn(chan);

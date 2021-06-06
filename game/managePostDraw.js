@@ -3,7 +3,6 @@ const errHandler = require("../util/err.js");
 const { addButton, colorToButtonStyle, buttonsToMessageActions } = require("../util/buttons.js");
 const playedWildCard = require("./playedWild.js");
 const postPlay = require("./postPlay.js");
-const botMad = require("./botMad.js");
 
 async function managePostDraw(chan, interaction, player, pid) {
 	const card = chan.uno.game.currentPlayer.hand[chan.uno.game.currentPlayer.hand.length - 1];
@@ -95,7 +94,6 @@ async function managePostDraw(chan, interaction, player, pid) {
 
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
-	await botMad(chan);
 	return true;
 }
 

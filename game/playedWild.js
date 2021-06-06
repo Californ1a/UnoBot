@@ -2,7 +2,6 @@ const { MessageButton } = require("discord.js");
 const { Card, Values, Colors } = require("uno-engine");
 const { addButton, colorToButtonStyle, buttonsToMessageActions } = require("../util/buttons.js");
 const postPlay = require("./postPlay.js");
-const botMad = require("./botMad.js");
 const getHand = require("./getHand.js");
 
 async function playedWild(inter, chan, value, pid) {
@@ -46,7 +45,6 @@ async function playedWild(inter, chan, value, pid) {
 
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
-	await botMad(chan);
 	return true;
 }
 

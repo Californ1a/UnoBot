@@ -154,7 +154,6 @@ async function sendHandWithButtons(chan, player, handStr, rows) {
 	if (!chan.uno) return false;
 	chan.uno.drawn = false;
 
-	await botMad(chan);
 	return true;
 }
 
@@ -169,7 +168,7 @@ async function nextTurn(chan) {
 	const str = `${player} (${handArr.length}) is up - Card: ${chan.uno.game.discardedCard.toString()}`;
 	const file = { files: [getCardImage(chan.uno.game.discardedCard)] };
 	await chan.send(str, file);
-
+	await botMad(chan);
 	chan.uno.playerCustomID = `${player.id}+${handStr}`;
 
 	if (player.id !== chan.guild.me.id) {
