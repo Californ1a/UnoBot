@@ -15,7 +15,7 @@
 	},
 	"dependencies": {
 		"colors": "^1.4.0",
-		"discord.js": "github:discordjs/discord.js#dec191aa1e4f22690285ca06c6eee7e6086b2930",
+		"discord.js": "^14.7.1",
 		"dotenv": "^8.2.0",
 		"uno-engine": "0.0.2"
 	}

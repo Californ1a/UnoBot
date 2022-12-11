@@ -6,7 +6,7 @@ async function draw(interaction, chan) {
 	if (await checkUnoRunning(interaction)) return;
 	if (await checkPlayerTurn(interaction)) return;
 	if (chan.uno.drawn) {
-		await interaction.reply("You cannot draw twice in a row.", { ephemeral: true });
+		await interaction.reply({ content: "You cannot draw twice in a row.", ephemeral: true });
 		return;
 	}
 	const player = chan.uno.players.get(interaction.member.id);

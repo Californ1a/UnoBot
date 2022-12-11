@@ -9,7 +9,7 @@ async function pass(interaction, chan) {
 		chan.uno.game.pass();
 	} catch (e) {
 		if (e.message.includes("must draw at least one card")) {
-			await interaction.reply("You must draw before passing.", { ephemeral: true });
+			await interaction.reply({ content: "You must draw before passing.", ephemeral: true });
 			return;
 		}
 		errHandler("error", e);

@@ -1,4 +1,4 @@
-const { MessageButton } = require("discord.js");
+const { ButtonBuilder } = require("discord.js");
 const errHandler = require("../util/err.js");
 const { addButton, colorToButtonStyle, buttonsToMessageActions } = require("../util/buttons.js");
 const playedWildCard = require("./playedWild.js");
@@ -10,8 +10,8 @@ async function managePostDraw(chan, interaction, player, pid) {
 	const n2 = (name.includes("WILD_DRAW")) ? "WD4" : (name.includes("DRAW")) ? `${name.split(" ")[0]} DT` : name;
 	colorToButtonStyle(name.split(" ")[0]);
 
-	const cardBtn = new MessageButton()
-		.setCustomID(card.toString())
+	const cardBtn = new ButtonBuilder()
+		.setCustomId(card.toString())
 		.setLabel((n2.split(" ")[1] ? n2.split(" ")[1] : n2))
 		.setStyle(colorToButtonStyle(name.split(" ")[0]));
 
@@ -26,10 +26,10 @@ async function managePostDraw(chan, interaction, player, pid) {
 		[],
 	], cardBtn);
 
-	const passBtn = new MessageButton()
-		.setCustomID("PASS")
+	const passBtn = new ButtonBuilder()
+		.setCustomId("PASS")
 		.setLabel("Pass")
-		.setStyle("SECONDARY")
+		.setStyle(2)
 		.setEmoji("⏭️");
 	buttons = addButton(buttons, passBtn);
 	const interMsg = `You drew a ${n2.toLowerCase()}`;
@@ -38,16 +38,16 @@ async function managePostDraw(chan, interaction, player, pid) {
 		components: buttonsToMessageActions(buttons),
 	};
 	let msg;
-	if (interaction.type === "APPLICATION_COMMAND") {
-		await interaction.reply("Drew", { allowedMentions: { users: [] } });
-		msg = await interaction.followUp(interMsg, msgOpts);
-	} else if (interaction.type === "MESSAGE_COMPONENT") {
-		await interaction.update(interMsg, msgOpts);
-		await chan.send(`${interaction.member} drew`, { allowedMentions: { users: [] } });
+	if (interaction.type === 2) {
+		await interaction.reply({ content: "Drew", allowedMentions: { users: [] } });
+		msg = await interaction.followUp({ content: interMsg, ...msgOpts });
+	} else if (interaction.type === 3) {
+		await interaction.update({ content: interMsg, ...msgOpts });
+		await chan.send({ content: `${interaction.member} drew`, allowedMentions: { users: [] } });
 	} else {
 		return false;
 	}
-	const createCollector = type => type.createMessageComponentInteractionCollector(() => true, {
+	const createCollector = type => type.createMessageComponentCollector({
 		max: 1,
 	});
 	const passCollector = createCollector(msg || interaction.message);
@@ -55,36 +55,36 @@ async function managePostDraw(chan, interaction, player, pid) {
 	const inter2 = await new Promise((resolve) => {
 		passCollector.on("collect", resolve);
 	});
-	console.log(`Collected ${inter2.customID}`);
+	console.log(`Collected ${inter2.customId}`);
 	if (chan.uno.game.currentPlayer.name !== inter2.member.id) {
-		await inter2.update(inter2.message.content, { components: [] });
-		await inter2.followUp("It's not your turn.", { ephemeral: true });
+		await inter2.update({ content: inter2.message.content, components: [] });
+		await inter2.followUp({ content: "It's not your turn.", ephemeral: true });
 		return false;
 	}
-	if (chan.uno.playerCustomID !== pid) {
-		inter2.update(inter2.message.content, { components: [] });
-		inter2.followUp("You can't use old Uno buttons.", { ephemeral: true });
+	if (chan.uno.playerCustomId !== pid) {
+		inter2.update({ content: inter2.message.content, components: [] });
+		inter2.followUp({ content: "You can't use old Uno buttons.", ephemeral: true });
 		return false;
 	}
-	if (inter2.customID === "PASS") {
+	if (inter2.customId === "PASS") {
 		try {
 			chan.uno.game.pass();
 		} catch (e) {
 			if (e.message.includes("must draw at least one card")) {
-				inter2.update(inter2.message.content, { components: [] });
-				inter2.followUp("You can't use old Uno buttons.", { ephemeral: true });
+				inter2.update({ content: inter2.message.content, components: [] });
+				inter2.followUp({ content: "You can't use old Uno buttons.", ephemeral: true });
 				return false;
 			}
 			errHandler("error", e);
 			return false;
 		}
-		await inter2.update("Passed", { components: [] });
-		await chan.send(`${inter2.member} passed`, { allowedMentions: { users: [] } });
+		await inter2.update({ content: "Passed", components: [] });
+		await chan.send({ content: `${inter2.member} passed`, allowedMentions: { users: [] } });
 		chan.uno.drawn = false;
 		return true;
 	}
 
-	if (inter2.customID.includes("NO_COLOR")) {
+	if (inter2.customId.includes("NO_COLOR")) {
 		const ret = await playedWildCard(inter2, chan, card.value.toString(), pid);
 		return ret;
 	}

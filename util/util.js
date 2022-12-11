@@ -1,7 +1,7 @@
 function getOpts(options) {
 	const arr = [];
 	const recurseOpts = (opt) => {
-		if (!opt.type.match(/^(sub_command|sub_command_group)$/i)) {
+		if (opt.type !== 1 && opt.type !== 2) {
 			return {
 				[opt.name]: opt.value,
 			};

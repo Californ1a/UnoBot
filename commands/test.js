@@ -1,9 +1,9 @@
-const { MessageActionRow, MessageButton } = require("discord.js");
+const { MessageActionRow, ButtonBuilder } = require("discord.js");
 
 async function test(interaction) {
 	const row = new MessageActionRow()
-		.addComponents(new MessageButton()
-			.setCustomID("primary")
+		.addComponents(new ButtonBuilder()
+			.setCustomId("primary")
 			.setLabel("primary")
 			.setStyle("PRIMARY"));
 

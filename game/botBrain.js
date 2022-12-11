@@ -10,14 +10,14 @@ async function botPlay(chan, matchingHand, callUno = true) {
 	if (!chan.uno) return;
 	const { id } = chan.uno;
 	const player = chan.uno.game.currentPlayer;
-	chan.startTyping();
+	chan.sendTyping();
 	await sleep(1500, 2500);
 	if (Math.floor(Math.random() * unoBotThink.length) < Math.floor(unoBotThink.length / 3.5)) {
 		if (!chan.uno || id !== chan.uno.id) return;
-		chan.stopTyping();
+		// chan.stopTyping();
 		await chan.send(unoBotThink[Math.floor(Math.random() * unoBotThink.length)]);
 		await sleep(500, 1500);
-		chan.startTyping();
+		chan.sendTyping();
 	}
 
 	// TODO: #1 Improve logic on which card to pick
@@ -58,14 +58,14 @@ async function botPlay(chan, matchingHand, callUno = true) {
 	}
 
 	await sleep(500, 1500);
-	chan.stopTyping();
+	// chan.stopTyping();
 
 	if (player.hand.length === 2 && callUno) {
 		if (!chan.uno || id !== chan.uno.id) return;
 		await chan.send("UNO!");
-		chan.startTyping();
+		chan.sendTyping();
 		await sleep(500, 1500);
-		chan.stopTyping();
+		// chan.stopTyping();
 	}
 
 	const commandColor = card.color.toString().toLowerCase();
@@ -83,22 +83,22 @@ async function botTurn(chan) {
 	if (!chan.uno) return;
 	const { id } = chan.uno;
 	const player = chan.uno.game.currentPlayer;
-	if (player.name !== chan.guild.me.id) return;
+	if (player.name !== chan.guild.members.me.id) return;
 	let matchingHand = filterHand(player.hand, chan.uno.game.discardedCard);
 	await sleep(2000, 4000);
 	if (matchingHand.length === 0) {
-		chan.startTyping();
+		chan.sendTyping();
 		await sleep(1000, 1500);
-		chan.stopTyping();
+		// chan.stopTyping();
 		if (!chan.uno || id !== chan.uno.id) return;
 		await chan.send("`/draw`");
 		chan.uno.game.draw();
 		matchingHand = filterHand(player.hand, chan.uno.game.discardedCard);
 		if (matchingHand.length === 0) {
 			await sleep(500, 1500);
-			chan.startTyping();
+			chan.sendTyping();
 			await sleep(500, 1500);
-			chan.stopTyping();
+			// chan.stopTyping();
 			if (!chan.uno || id !== chan.uno.id) return;
 			await chan.send("`/pass`");
 			chan.uno.game.pass();

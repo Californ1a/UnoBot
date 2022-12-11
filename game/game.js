@@ -1,4 +1,4 @@
-const { MessageButton, MessageEmbed } = require("discord.js");
+const { ButtonBuilder, EmbedBuilder } = require("discord.js");
 const { Card, Values, Colors } = require("uno-engine");
 const fs = require("fs/promises");
 const path = require("path");
@@ -16,12 +16,12 @@ const { matchCard } = require("./filterHand.js");
 const botMad = require("./botMad.js");
 const postPlay = require("./postPlay.js");
 
-function gcd(a, b) {
-	if (b === 0) {
-		return a;
-	}
-	return gcd(b, a % b);
-}
+// function gcd(a, b) {
+// 	if (b === 0) {
+// 		return a;
+// 	}
+// 	return gcd(b, a % b);
+// }
 
 function getCardImage(card) {
 	const value = card.value.toString();
@@ -35,7 +35,7 @@ function reset(chan) {
 
 async function checkUnoRunning(interaction) {
 	if (!interaction.channel.uno?.running) {
-		await interaction.reply("No Uno game found. Use `/uno` to start a new game.", { ephemeral: true });
+		await interaction.reply({ content: "No Uno game found. Use `/uno` to start a new game.", ephemeral: true });
 		return true;
 	}
 	return false;
@@ -43,7 +43,7 @@ async function checkUnoRunning(interaction) {
 
 async function checkPlayerTurn(interaction) {
 	if (interaction.channel.uno.game.currentPlayer.name !== interaction.member.id) {
-		await interaction.reply("It's not your turn.", { ephemeral: true });
+		await interaction.reply({ content: "It's not your turn.", ephemeral: true });
 		return true;
 	}
 	return false;
@@ -54,38 +54,15 @@ function createButtons(hand, discard) {
 		[],
 	];
 	let i = 0;
-	for (const card of hand) {
+	let j = 0;
+	for (j = 0; j < hand.length; j += 1) {
+		const card = hand[j];
 		const color = (card.color) ? card.color.toString() : "YELLOW";
 		const style = colorToButtonStyle(color);
 		const val = card.value.toString();
 		const value = (val === "DRAW_TWO") ? "DT" : (val === "WILD_DRAW_FOUR") ? "WD4" : val;
-		// NOTE Future select menus:
-		// * https://deploy-preview-674--discordjs-guide.netlify.app/interactions/select-menus.html#building-and-sending-select-menus
-		// let button;
-		// if (value === "WD4" || value === "WILD") {
-		// 	button = new MessageSelectMenu()
-		// 		.setCustomID(val)
-		// 		.setPlaceholder(value)
-		// 		.addOptions([{
-		// 			label: "Blue",
-		// 			description: "Color selection",
-		// 			value: "BLUE",
-		// 		}, {
-		// 			label: "Green",
-		// 			description: "Color selection",
-		// 			value: "GREEN",
-		// 		}, {
-		// 			label: "Red",
-		// 			description: "Color selection",
-		// 			value: "RED",
-		// 		}, {
-		// 			label: "Yellow",
-		// 			description: "Color selection",
-		// 			value: "YELLOW",
-		// 		}]);
-		// } else {
-		const button = new MessageButton()
-			.setCustomID(card.toString())
+		const button = new ButtonBuilder()
+			.setCustomId(`${j}|${card.toString()}`)
 			.setLabel(value)
 			.setStyle(style);
 		if (!matchCard(card, discard)) {
@@ -100,10 +77,10 @@ function createButtons(hand, discard) {
 			return null;
 		}
 	}
-	const drawButton = new MessageButton()
-		.setCustomID("draw")
+	const drawButton = new ButtonBuilder()
+		.setCustomId(`${j + 1}|draw`)
 		.setLabel("Draw")
-		.setStyle("SECONDARY")
+		.setStyle(2)
 		.setEmoji("🎲");
 	buttons = addButton(buttons, drawButton);
 
@@ -112,29 +89,30 @@ function createButtons(hand, discard) {
 
 async function sendHandWithButtons(chan, player, handStr, rows) {
 	if (!chan.uno || chan.uno.end) return false;
-	const handMsg = await player.interaction.followUp(`Your Uno hand: ${handStr}`, { ephemeral: true, components: rows });
+	const handMsg = await player.interaction.followUp({ content: `Your Uno hand: ${handStr}`, ephemeral: true, components: rows });
 
-	const collector = handMsg.createMessageComponentInteractionCollector(() => true, {
+	const collector = handMsg.createMessageComponentCollector({
 		max: 1,
 	});
-	const pid = chan.uno.playerCustomID;
+	const pid = chan.uno.playerCustomId;
 	const inter = await new Promise((resolve) => {
 		collector.on("collect", resolve);
 	});
 
-	console.log(`Collected ${inter.customID}`);
+	console.log(`Collected ${inter.customId}`);
 	if (!chan.uno || chan.uno.game.currentPlayer.name !== inter.user.id
-		|| chan.uno.playerCustomID !== pid) {
-		inter.update(inter.message.content, { components: [] });
-		inter.followUp("You can't use old Uno buttons.", { ephemeral: true });
+		|| chan.uno.playerCustomId !== pid) {
+		inter.update({ content: inter.message.content, components: [] });
+		inter.followUp({ content: "You can't use old Uno buttons.", ephemeral: true });
 		return false;
 	}
-	const cardArr = inter.customID.split(" ");
+
+	const cardArr = inter.customId.split("|")[1].split(" ");
 
 	if (cardArr.length === 1) {
 		if (chan.uno.drawn) {
-			await inter.update(inter.message.content, { components: [] });
-			await inter.followUp("You cannot draw twice in a row.", { ephemeral: true });
+			await inter.update({ content: inter.message.content, components: [] });
+			await inter.followUp({ content: "You cannot draw twice in a row.", ephemeral: true });
 			return false;
 		}
 		chan.uno.game.draw();
@@ -166,12 +144,12 @@ async function nextTurn(chan) {
 		return; // game.on end triggers
 	}
 	const str = `${player.member} (${handArr.length}) is up - Card: ${chan.uno.game.discardedCard.toString()}`;
-	const file = { files: [getCardImage(chan.uno.game.discardedCard)] };
-	await chan.send(str, file);
+	const file = getCardImage(chan.uno.game.discardedCard);
+	await chan.send({ content: str, files: [file] });
 	await botMad(chan);
-	chan.uno.playerCustomID = `${player.member.id}+${handStr}`;
+	chan.uno.playerCustomId = `${player.member.id}+${handStr}`;
 
-	if (player.member.id !== chan.guild.me.id) {
+	if (player.member.id !== chan.guild.members.me.id) {
 		try {
 			const rows = createButtons(chan.uno.game.currentPlayer.hand, chan.uno.game.discardedCard);
 			if (rows) {
@@ -181,7 +159,7 @@ async function nextTurn(chan) {
 					return;
 				}
 			} else {
-				await player.interaction.followUp(`Your Uno hand: ${handStr}\n\n**Too many cards to create buttons (max 25) - use \`/play\` command.**`, { ephemeral: true });
+				await player.interaction.followUp({ content: `Your Uno hand: ${handStr}\n\n**Too many cards to create buttons (max 25) - use \`/play\` command.**`, ephemeral: true });
 			}
 		} catch (e) {
 			await chan.send(`An unknown error occurred, ${player}, use slash comamnds.`);
@@ -189,7 +167,7 @@ async function nextTurn(chan) {
 		}
 	}
 
-	if (chan.uno && player.member.id === chan.guild.me.id) {
+	if (chan.uno && player.member.id === chan.guild.members.me.id) {
 		try {
 			await botTurn(chan);
 			await nextTurn(chan);
@@ -233,14 +211,14 @@ async function finished(chan, err, winner, score) {
 	for (const hand of hands) {
 		const p = chan.uno.players.get(hand.player.name);
 		handLines.push(`${p.member}'s final hand (${hand.handArr.length}): ${hand.handStr}`);
-		if (!userScores[p.id]) {
-			userScores[p.id] = {
+		if (!userScores[p.member.id]) {
+			userScores[p.member.id] = {
 				wins: 0,
 				loses: 1,
 				score: 0,
 			};
 		} else {
-			userScores[p.id].loses += 1;
+			userScores[p.member.id].loses += 1;
 		}
 	}
 	handLines.sort((a, b) => a.split(",").length - b.split(",").length);
@@ -249,26 +227,26 @@ async function finished(chan, err, winner, score) {
 	await sleep(1000);
 	reset(chan);
 
-	const startBtn = new MessageButton()
-		.setCustomID("START")
+	const startBtn = new ButtonBuilder()
+		.setCustomId("START")
 		.setLabel("Start")
-		.setStyle("PRIMARY")
+		.setStyle(1)
 		.setEmoji("⏩");
 	let buttons = addButton([
 		[],
 	], startBtn);
 
-	const quickStartBtn = new MessageButton()
-		.setCustomID("QUICK")
+	const quickStartBtn = new ButtonBuilder()
+		.setCustomId("QUICK")
 		.setLabel("Quick Start")
-		.setStyle("SUCCESS")
+		.setStyle(3)
 		.setEmoji("🏃");
 	buttons = addButton(buttons, quickStartBtn);
 
-	const botStartBtn = new MessageButton()
-		.setCustomID("BOT")
+	const botStartBtn = new ButtonBuilder()
+		.setCustomId("BOT")
 		.setLabel("Bot Start")
-		.setStyle("SECONDARY")
+		.setStyle(2)
 		.setEmoji("🤖");
 	buttons = addButton(buttons, botStartBtn);
 
@@ -282,36 +260,37 @@ async function finished(chan, err, winner, score) {
 	const bar = "-".repeat(40);
 	const { wins } = winScore;
 	const totalGames = wins + winScore.loses;
-	const winsGCD = gcd(wins, totalGames);
-	const winRatio = `${Math.floor(wins / winsGCD)}:${Math.floor(totalGames / winsGCD)}`;
-	const embed = new MessageEmbed()
-		.setDescription(`${bar}\n🥇 ${player.member} wins! Score: ${score}\n${bar}\nWins: ${wins.toLocaleString()}/${totalGames.toLocaleString()} (${winRatio}) - Total score: ${winScore.score.toLocaleString()}\n\n${handLines.join("\n")}`)
+	// const winsGCD = gcd(wins, totalGames);
+	const winPercent = `${((wins / totalGames) * 100).toFixed(2)}%`;
+	const embed = new EmbedBuilder()
+		.setDescription(`${bar}\n🥇 ${player.member} wins! Score: ${score}\n${bar}\nWins: ${wins.toLocaleString()}/${totalGames.toLocaleString()} (${winPercent}) - Total score: ${winScore.score.toLocaleString()}\n\n${handLines.join("\n")}`)
 		.setColor(embedColor);
-	const msg = await chan.send("Game finished!", {
-		embed,
+	const msg = await chan.send({
+		content: "Game finished!",
+		embeds: [embed],
 		components: buttonsToMessageActions(buttons),
 	});
 	await fs.writeFile(file, JSON.stringify(userScores, null, 2));
-	const startCollector = msg.createMessageComponentInteractionCollector(() => true, {
+	const startCollector = msg.createMessageComponentCollector({
 		max: 1,
 	});
 	const inter = await new Promise((resolve) => {
 		startCollector.on("collect", resolve);
 	});
-	console.log(`Collected ${inter.customID}`);
+	console.log(`Collected ${inter.customId}`);
 	const opts = {};
-	if (inter.customID === "QUICK") {
+	if (inter.customId === "QUICK") {
 		opts.solo = true;
 	}
-	if (inter.customID === "BOT") {
+	if (inter.customId === "BOT") {
 		opts.bot = true;
 	}
 	if (!chan.uno?.running) {
 		start(inter, chan, opts, reset, nextTurn, finished);
 		return;
 	}
-	await inter.update(inter.message.content, { components: [] });
-	await inter.followUp("Uno is already running.", { ephemeral: true });
+	await inter.update({ content: inter.message.content, components: [] });
+	await inter.followUp({ content: "Uno is already running.", ephemeral: true });
 }
 
 module.exports = {

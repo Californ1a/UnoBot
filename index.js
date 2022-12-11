@@ -1,16 +1,26 @@
-const { Client } = require("discord.js"); // v13
+const { Client, GatewayIntentBits, Collection } = require("discord.js"); // v13
 const colors = require("colors");
 const { getOpts, getTimestamp } = require("./util/util.js");
 const errHandler = require("./util/err.js");
 const commands = require("./util/loadCommands.js");
 const { reset, nextTurn, finished } = require("./game/game.js");
 const start = require("./game/gameStart.js");
+const deployCommands = require("./util/deployCommands.js");
 
-const bot = new Client({ intents: ["GUILDS", "GUILD_MEMBERS", "GUILD_EMOJIS", "GUILD_WEBHOOKS", "GUILD_MESSAGES"] });
+const bot = new Client({
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildEmojisAndStickers,
+		GatewayIntentBits.GuildWebhooks,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+	],
+});
 console.log(colors.red("Starting"));
 const token = process.env.DISCORD_TOKEN;
 
-bot.on("message", async (msg) => {
+bot.on("messageCreate", async (msg) => {
 	console.log(`[${getTimestamp(msg.createdAt)}] ${msg.author.username}: ${msg.cleanContent}`);
 	if (msg.author.bot) return;
 	if (!msg.content.startsWith("!")) return;
@@ -23,15 +33,22 @@ bot.on("message", async (msg) => {
 	}
 });
 
-bot.on("interaction", async (interaction) => {
+bot.on("interactionCreate", async (interaction) => {
 	if (!interaction.isCommand()) {
-		if (!interaction.isMessageComponent() && interaction.componentType !== "BUTTON") return;
+		if (!interaction.isMessageComponent() && !interaction.isButton()) return;
 		return;
 	}
 	let opts = {};
 	let optString = "";
-	if (interaction.options?.size > 0) {
-		opts = getOpts(interaction.options);
+	console.log("interaction.options", interaction.options);
+	// eslint-disable-next-line no-underscore-dangle
+	if (interaction.options._hoistedOptions?.length > 0) {
+		const options = new Collection();
+		// eslint-disable-next-line no-underscore-dangle
+		interaction.options._hoistedOptions.map(o => [o.name, o])
+			.forEach(o => options.set(...o));
+		// eslint-disable-next-line no-underscore-dangle
+		opts = getOpts(options);
 		// NOTE without subcommands this works
 		// opts = interaction.options.reduce((acc, opt) => ({
 		// 	[opt.name]: opt.value,
@@ -51,13 +68,13 @@ bot.on("interaction", async (interaction) => {
 });
 
 async function listenToButtonsOnOldMsg(msg) {
-	const startCollector = msg.createMessageComponentInteractionCollector(() => true, {
+	const startCollector = msg.createMessageComponentCollector({
 		max: 1,
 	});
 	const interaction = await new Promise((resolve) => {
 		startCollector.on("collect", resolve);
 	});
-	console.log(`Collected ${interaction.customID}`);
+	console.log(`Collected ${interaction.customId}`);
 	if (interaction.replied) return;
 	/**
 	 * TODO: Make it work for mid-game buttons if bot restarts during a game
@@ -65,22 +82,22 @@ async function listenToButtonsOnOldMsg(msg) {
 	 * Ephemeral msg's can't be fetched if they aren't already cached
 	 * so the bot won't see them on startup.
 	 */
-	if (!interaction.customID.match(/^(start|quick|bot)$/i)) {
-		await interaction.update(interaction.message.content, { components: [] });
-		await interaction.followUp("You can't use old Uno buttons", { ephemeral: true });
+	if (!interaction.customId.match(/^(start|quick|bot)$/i)) {
+		await interaction.update({ content: interaction.message.content, components: [] });
+		await interaction.followUp({ content: "You can't use old Uno buttons", ephemeral: true });
 		return;
 	}
 	const opts = {};
-	if (interaction.customID === "QUICK") {
+	if (interaction.customId === "QUICK") {
 		opts.solo = true;
 	}
-	if (interaction.customID === "BOT") {
+	if (interaction.customId === "BOT") {
 		opts.bot = true;
 	}
 
 	if (interaction.channel.uno?.running) {
-		await interaction.update(interaction.message.content, { components: [] });
-		await interaction.followUp("Uno is already running.", { ephemeral: true });
+		await interaction.update({ content: interaction.message.content, components: [] });
+		await interaction.followUp({ content: "Uno is already running.", ephemeral: true });
 		return;
 	}
 
@@ -89,10 +106,14 @@ async function listenToButtonsOnOldMsg(msg) {
 
 // Bot login+info
 bot.on("ready", async () => {
-	console.log("Ready!");
+	try {
+		await deployCommands(bot);
+	} catch (err) {
+		console.error(err);
+	}
 	bot.guilds.cache.forEach((guild) => {
 		guild.channels.cache.forEach(async (channel) => {
-			if (!(channel.type === "text" && channel.viewable && channel.isText())) return;
+			if (!(channel.type === 0 && channel.viewable && channel.isTextBased())) return;
 			console.log(colors.grey(`Checking channel ${channel.name} in guild ${guild.name}...`));
 			const msgs = await channel.messages.fetch({ limit: 15 });
 			msgs.forEach((message) => {
@@ -102,6 +123,7 @@ bot.on("ready", async () => {
 			});
 		});
 	});
+	console.log("Ready!");
 });
 bot.on("error", (...args) => {
 	errHandler("error", ...args);
@@ -111,8 +133,7 @@ bot.on("warn", (...args) => {
 });
 const regToken = /[\w\d]{24}\.[\w\d]{6}\.[\w\d-_]{27}/g;
 bot.on("debug", (e) => {
-	if (!e.toLowerCase().includes("heartbeat")) { // suppress heartbeat messages
-		console.info(colors.grey(e.replace(regToken, "[Redacted]")));
-	}
+	if (!e.toLowerCase().includes("heartbeat")) return; // suppress heartbeat messages
+	console.info(colors.grey(e.replace(regToken, "[Redacted]")));
 });
 bot.login(token);

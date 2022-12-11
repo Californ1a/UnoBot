@@ -1,4 +1,4 @@
-const { MessageActionRow } = require("discord.js");
+const { ActionRowBuilder } = require("discord.js");
 
 function addButton(buttons, button) {
 	const last = buttons[buttons.length - 1];
@@ -11,11 +11,11 @@ function addButton(buttons, button) {
 }
 
 function colorToButtonStyle(color) {
-	return (color === "BLUE") ? "PRIMARY" : (color === "GREEN") ? "SUCCESS" : (color === "RED") ? "DANGER" : "SECONDARY";
+	return (color === "BLUE") ? 1 : (color === "GREEN") ? 3 : (color === "RED") ? 4 : 2;
 }
 
 function buttonsToMessageActions(buttons) {
-	return buttons.map(b => new MessageActionRow().addComponents(b));
+	return buttons.map(b => new ActionRowBuilder().addComponents(...b));
 }
 
 module.exports = {

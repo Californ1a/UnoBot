@@ -4,8 +4,8 @@ async function botMad(chan) {
 	// Let bot get mad if he has to draw cards or gets skipped
 	const value = chan.uno.game.discardedCard.value.toString();
 	if (!(value.includes("DRAW") || value.includes("SKIP") || value.includes("REVERSE"))
-		|| !chan.uno.game.getPlayer(chan.guild.me.id) || chan.uno.players.size !== 2
-		|| chan.uno.game.currentPlayer.name === chan.guild.me.id) {
+		|| !chan.uno.game.getPlayer(chan.guild.members.me.id) || chan.uno.players.size !== 2
+		|| chan.uno.game.currentPlayer.name === chan.guild.members.me.id) {
 		return;
 	}
 	const betweenLength = Math.floor(Math.random() * unoBotMad.length);

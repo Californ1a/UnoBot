@@ -6,7 +6,7 @@
 	"description": "Start Uno!",
 	"options": [{
 		"name": "solo",
-		"type": "STRING",
+		"type": 3,
 		"description": "Skip the countdown and immediately start a solo game against the bot.",
 		"required": false,
 		"choices": [{
@@ -15,7 +15,7 @@
 		}]
 	}, {
 		"name": "end",
-		"type": "STRING",
+		"type": 3,
 		"description": "Force end a currently-running game.",
 		"required": false,
 		"choices": [{
@@ -24,7 +24,7 @@
 		}]
 	}, {
 		"name": "bot",
-		"type": "STRING",
+		"type": 3,
 		"description": "Force bot to join non-solo games.",
 		"required": false,
 		"choices": [{
@@ -40,7 +40,7 @@
 	"description": "Play a card",
 	"options": [{
 		"name": "color",
-		"type": "STRING",
+		"type": 3,
 		"description": "The color of the card to play",
 		"required": true,
 		"choices": [{
@@ -58,7 +58,7 @@
 		}]
 	}, {
 		"name": "value",
-		"type": "STRING",
+		"type": 3,
 		"description": "The value of the card to play",
 		"required": true,
 		"choices": [{
@@ -116,7 +116,7 @@
 	"description": "View your hand or count cards in another player's hand",
 	"options": [{
 		"name": "player",
-		"type": "USER",
+		"type": 6,
 		"description": "Count cards remaining in this player's hand",
 		"required": false
 	}]
