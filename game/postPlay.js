@@ -8,14 +8,14 @@ const noMention = {
 	},
 };
 
-async function postPlay(chan, interaction, card) {
+async function postPlay(chan, interaction, card, drew = false) {
 	const drawn = { didDraw: false };
 	const playingPlayer = chan.uno.game.currentPlayer;
 	try {
 		chan.uno.game.play(card);
 		chan.uno.selectingColor = false;
 
-		const playedStr = `${interaction?.member} played ${getPlainCard(card)}`;
+		const playedStr = `${interaction?.member} ${(drew) ? "drew & " : ""}played ${getPlainCard(card)}`;
 		if (!chan.uno && interaction) {
 			if (interaction.type === 3) {
 				await interaction.update({ content: interaction.message.content, components: [] });
@@ -63,7 +63,7 @@ async function postPlay(chan, interaction, card) {
 	const drewAmnt = (c.includes("two") ? 2 : 4);
 	const drewStr = `${drawn.player?.user} drew ${drewAmnt} cards (${drawn.player?.handCount}->${drawn.player?.handCount + drewAmnt}).`;
 	const someoneDrew = (drawn.didDraw) ? `, ${drewStr}` : "";
-	const played = `${interaction?.member} played ${getPlainCard(card)}`;
+	const played = `${interaction?.member} ${(drew) ? "drew & " : ""}played ${getPlainCard(card)}`;
 
 	if (drawn.didDraw) {
 		if (!interaction) {

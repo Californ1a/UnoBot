@@ -4,7 +4,7 @@ const { addButton, colorToButtonStyle, buttonsToMessageActions } = require("../u
 const postPlay = require("./postPlay.js");
 const getHand = require("./getHand.js");
 
-async function playedWild(inter, chan, value, pid) {
+async function playedWild(inter, chan, value, pid, drew = false) {
 	const colors = ["Blue", "Green", "Red", "Yellow"];
 	const buttons = colors.reduce((a, c) => addButton(a, new ButtonBuilder()
 		.setCustomId(c.toUpperCase())
@@ -41,7 +41,7 @@ async function playedWild(inter, chan, value, pid) {
 	}
 	card.color = Colors.get(Colors.get(inter2.customId));
 
-	const ret = await postPlay(chan, inter2, card);
+	const ret = await postPlay(chan, inter2, card, drew);
 	if (!ret) return false;
 
 	if (!chan.uno) return false;

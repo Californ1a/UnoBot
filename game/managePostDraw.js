@@ -43,7 +43,7 @@ async function managePostDraw(chan, interaction, player, pid) {
 		msg = await interaction.followUp({ content: interMsg, ...msgOpts });
 	} else if (interaction.type === 3) {
 		await interaction.update({ content: interMsg, ...msgOpts });
-		await chan.send({ content: `${interaction.member} drew`, allowedMentions: { users: [] } });
+		// await chan.send({ content: `${interaction.member} drew`, allowedMentions: { users: [] } });
 	} else {
 		return false;
 	}
@@ -79,17 +79,17 @@ async function managePostDraw(chan, interaction, player, pid) {
 			return false;
 		}
 		await inter2.update({ content: "Passed", components: [] });
-		await chan.send({ content: `${inter2.member} passed`, allowedMentions: { users: [] } });
+		await chan.send({ content: `${inter2.member} drew & passed`, allowedMentions: { users: [] } });
 		chan.uno.drawn = false;
 		return true;
 	}
 
 	if (inter2.customId.includes("NO_COLOR")) {
-		const ret = await playedWildCard(inter2, chan, card.value.toString(), pid);
+		const ret = await playedWildCard(inter2, chan, card.value.toString(), pid, true);
 		return ret;
 	}
 
-	const ret = await postPlay(chan, inter2, card);
+	const ret = await postPlay(chan, inter2, card, true);
 	if (!ret) return false;
 
 	if (!chan.uno) return false;

@@ -40,7 +40,7 @@ bot.on("interactionCreate", async (interaction) => {
 	}
 	let opts = {};
 	let optString = "";
-	console.log("interaction.options", interaction.options);
+	// console.log("interaction.options", interaction.options);
 	// eslint-disable-next-line no-underscore-dangle
 	if (interaction.options._hoistedOptions?.length > 0) {
 		const options = new Collection();
@@ -133,7 +133,7 @@ bot.on("warn", (...args) => {
 });
 const regToken = /[\w\d]{24}\.[\w\d]{6}\.[\w\d-_]{27}/g;
 bot.on("debug", (e) => {
-	if (!e.toLowerCase().includes("heartbeat")) return; // suppress heartbeat messages
+	if (e.toLowerCase().includes("heartbeat")) return; // suppress heartbeat messages
 	console.info(colors.grey(e.replace(regToken, "[Redacted]")));
 });
 bot.login(token);
